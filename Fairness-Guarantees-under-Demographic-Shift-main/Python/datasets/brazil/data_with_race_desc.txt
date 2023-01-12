@@ -1,0 +1,24 @@
+Column Labels:
+   0 : Gender
+   1 : Race
+   2 : SAT_Physics
+   3 : SAT_Biology
+   4 : SAT_History
+   5 : SAT_Second_Language
+   6 : SAT_Geography
+   7 : SAT_Literature
+   8 : SAT_Portuguese_and_Essay
+   9 : SAT_Math
+   10 : SAT_Chemistry
+   11 : GPA
+
+Gender Codes:
+   F : 0
+   M : 1
+
+Race Label Changes:
+   Amarela --> Asian
+   Branca --> White
+   Negra --> Black
+   Parda --> Parda
+   Vermelha --> Indigenous

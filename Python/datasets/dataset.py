@@ -21,7 +21,8 @@ class Dataset(object):
 		self._unique_values = {}
 		for k, v in contents.items():
 			setattr(self, '_%s' % k, v)
-			if v.dtype == int:
+
+			if v.dtype == np.dtype(np.int32):
 				self._unique_values[k] = np.unique(v)
 
 		# Compute indices for the splits
@@ -32,7 +33,7 @@ class Dataset(object):
 			'opt'   : np.arange(0, self._n_candidate),
 			'saf'   : np.arange(self._n_candidate, self._n_train)
 		}
-	
+
 	@property
 	def n_train(self):
 		return len(self._inds['train'])
@@ -91,7 +92,7 @@ class ClassificationDataset(Dataset):
 		output = ClassificationDataset(self._labels, n_candidate, n_safety, n_test, seed=self._seed, meta_information=self._meta_information, **contents)
 		output._unique_values = deepcopy(self._unique_values)
 		return output
-	
+
 
 class RLDataset(object):
 	def __init__(self, S, A, R, T, P, n_actions, n_candidate, n_safety, n_test, min_reward, max_reward, gamma=1.0, seed=None, Rc_func=(lambda s,a,r,t: r)):
@@ -123,7 +124,7 @@ class RLDataset(object):
 			self._inds['%s_0'%k] = inds[T[inds]==0]
 			self._inds['%s_1'%k] = inds[T[inds]==1]
 		# Store the default seed
-		self._seed = seed		
+		self._seed = seed
 
 	def enable_R_corrections(self):
 		self._apply_corrections = True
@@ -201,7 +202,7 @@ class RLDataset(object):
 		return self._get_splits('opt', t=t, corrected_R=corrected_R)
 	def safety_splits(self, t=None, corrected_R=True):
 		return self._get_splits('saf', t=t, corrected_R=corrected_R)
-		
+
 	def all_sets_by_type(self, truncate=True, reorder=False, seed=None):
 		return self._get_splits_by_type('all', truncate=truncate, reorder=reorder, seed=seed)
 	def training_splits_by_type(self, truncate=True, reorder=False, seed=None):
@@ -231,7 +232,7 @@ class BanditDataset(RLDataset):
 			self._proba_gp = None
 		self._return_gp = None
 		super().__init__(S, A, R, T, P, n_actions, n_candidate, n_safety, n_test, min_reward, max_reward, seed=seed, gamma=1.0, Rc_func=Rc_func)
-		
+
 	def train_proba_gp(self, use_pct=0.1):
 		kernel = 1.0 * RBF(1.0)
 		self._proba_gp = GaussianProcessClassifier(kernel)
@@ -254,7 +255,7 @@ class BanditDataset(RLDataset):
 			Y[i] = np.where(r==returns)[0]
 		kernel = 1.0 * RBF(1.0)
 		self._return_gp = GaussianProcessClassifier(kernel)
-		
+
 		X = np.hstack((self._S[:,0,:],self._T[:,None],self._A))
 		n_train = int(use_pct*X.shape[0])
 		I = np.arange(X.shape[0])
@@ -299,7 +300,7 @@ class BanditDataset(RLDataset):
 				X = np.hstack((S[None,:],np.array([[T]])))
 				P = self._proba_gp.predict(X).astype(int)
 				X = np.hstack((X, np.array([[A]])))
-				R = returns[self._return_gp.predict(X).astype(int)]	
+				R = returns[self._return_gp.predict(X).astype(int)]
 				return S, A, R[0], T, P[0]
 			else:
 				X = np.hstack((S[:,0,:],T[:,None]))

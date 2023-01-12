@@ -278,10 +278,14 @@ class ConstraintManager():
 	def upper_bound_constraints(self, all_deltas, mode='hoeffding', interval_scaling=1.0, n_scale=1.0, robustness_bounds={}, term_values={}, debug=False):
 		all_deltas = np.zeros(self.n_constraints) if all_deltas is None else all_deltas
 		self._tc.tic('bound_constraints')
+
+		# get bounds for each constraint
 		constraint_bounds = self.bound_constraints(all_deltas, mode=mode, interval_scaling=interval_scaling, n_scale=n_scale, robustness_bounds=robustness_bounds, term_values=term_values)
 		if debug:
 			print('CBs:', constraint_bounds)
 		self._tc.toc('bound_constraints')
+
+		# filter out only upper bounds
 		out = np.array([ b[1] for b in constraint_bounds ])
 		if debug:		
 			print('-'*40)
@@ -299,6 +303,24 @@ class ConstraintManager():
 		return np.array([ b[0] for b in constraint_bounds ])
 
 	def bound_constraints(self, all_deltas, mode='hoeffding', interval_scaling=1.0, n_scale=1.0, robustness_bounds={}, term_values={}):
+		'''
+		gets lower and upper bounds per contraint
+
+		Parameters
+		----------
+		all_deltas: some iterable
+		mode: str
+		interval_scaling: float
+		n_scale: float
+		robustness_bounds: dict
+		term_values: dict
+
+
+		Returns
+		-------
+		List[Tuple[float, float]]
+			a list of tuples with the lower and upper bounds per expression
+		'''
 		self._tc.tic('bound_constraints:setup')
 		assert self.has_defined_values(), 'ConstraintManager.bound(): Undefined values %r' % [ k for k,v in self.values.items() if v is None ]
 		deltas   = { name : None for name in self.expected_values }
@@ -360,6 +382,21 @@ class ConstraintManager():
 		return constraint_bounds
 
 	def bound_expression(E, bounds):
+		'''
+		I believe this retuens lower and upper bound of an expression
+
+		Parameters
+		----------
+		E: Any
+			an expression
+		bounds: Dict
+
+
+		Returns
+		-------
+		Tuple[float, float]	
+			These are probably the upper and lower bound
+		'''
 		if isinstance(E, expressions.ConstantExpression):
 			return (E.value, E.value)
 		if isinstance(E, expressions.ExpectedValue):

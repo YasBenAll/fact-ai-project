@@ -40,7 +40,19 @@ warnings.simplefilter(action='ignore', category=ConvergenceWarning)
 # Wrapper for training each model and evaluating it under antagonistic resampling
 
 def _evaluate_model(dataset, trainf, mp):
-	cm = get_classification_cm(mp['constraints'])
+	"""
+	Train a model using the given training function and evaluate it under antagonistic resampling.
+
+	Args:
+		dataset: A dataset object
+		trainf: A function that takes a dataset and mp and returns a prediction function and a boolean indicating whether the model is non-saturating
+		mp: A dictionary of model parameters
+
+	Returns: 
+		[dict]: A dictionary containing the results of the evaluation
+	"""
+	# TODO - find out whether variable cm can be removed or not.
+	cm = get_classification_cm(mp['constraints']) 
 
 	# Resample the base dataset uniformly to obtain a training dataset
 	n_train = dataset.resample_n_train 
@@ -65,6 +77,15 @@ def _evaluate_model(dataset, trainf, mp):
 # Methods to train models
 
 def _get_fairlearn(dataset, mp):
+	"""
+	Train a fairlearn model and return a prediction function.
+	Args:
+		dataset: A dataset object
+		mp: A dictionary of model parameters
+
+	Returns: 
+		[predictf, is_nsf]: A prediction function and a boolean indicating whether a solution is found for the model (nsf = no solution found)
+	"""
 	# Train the model
 	# Load the dataset and convert it to a pandas dataframe
 	split = dataset.training_splits()
@@ -99,6 +120,16 @@ def _get_fairlearn(dataset, mp):
 	return predictf, False
 
 def _get_fair_constraints(dataset, mp):
+	"""
+	Train a FairConstraints model and return a prediction function.
+
+	Args:
+		dataset: A dataset object
+		mp: A dictionary of model parameters
+
+	Returns: 
+		tuple[int, bool]: A prediction function and a boolean indicating whether a solution is found for the model (nsf = no solution found)
+	"""
 	# FairConstraints is constructed to simultaneously enforce disparate impact and disparate treatment,
 	# thus the training process is the same regardless of the actual definition we're evaluating.	
 	# Configure the constraints and weights
@@ -125,6 +156,17 @@ def _get_fair_constraints(dataset, mp):
 	return predictf, False
 
 def _get_hoeff_sc(dataset, mp, enforce_robustness=False):
+	"""
+	Train a Hoeffding SC model and return a prediction function.
+
+	Args:
+		dataset: A dataset object
+		mp: A dictionary of model parameters
+		enforce_robustness: Whether to enforce robustness constraints
+
+	Returns:
+		tuple[int, bool]: A prediction function and a boolean indicating whether the found theta can be used to make predictions.
+	"""
 	model_params = {
 		'verbose'     : False,
 		'shape_error' : True,
@@ -156,6 +198,17 @@ def _get_hoeff_sc(dataset, mp, enforce_robustness=False):
 	return model.predict, ~accept
 
 def _get_ttest_sc(dataset, mp, enforce_robustness=False):
+	"""
+	Get a ttest SC model and return a prediction function. 
+
+	Args:
+		dataset: A dataset object
+		mp: A dictionary of model parameters
+		enforce_robustness: Whether to enforce robustness constraints
+
+	Returns:
+		tuple[float, bool]: A prediction function and a boolean indicating whether the found theta can be used to make predictions.
+	"""
 	model_params = {
 		'verbose'     : False,
 		'shape_error' : True,
@@ -187,6 +240,9 @@ def _get_ttest_sc(dataset, mp, enforce_robustness=False):
 	return model.predict, ~accept
 
 def _get_sgd(dataset, mp):
+	"""
+	Train a SGD model.
+	"""
 	split = dataset.training_splits()
 	Xt, Yt = split['X'], split['Y']
 	if mp['loss']=='log':
@@ -197,6 +253,9 @@ def _get_sgd(dataset, mp):
 	return model.predict, False
 
 def _get_svc(dataset, mp):
+	"""
+	Train a SVC model.
+	"""
 	split = dataset.training_splits()
 	Xt, Yt = split['X'], split['Y']
 	model = SVC(gamma=mp['gamma'], C=mp['C'], kernel=mp['kernel'])
@@ -204,6 +263,16 @@ def _get_svc(dataset, mp):
 	return model.predict, False
 
 def _get_linsvc(dataset, mp):
+	"""
+	Train a linear SVC model.
+
+	args:
+		dataset: dataset object
+		mp: model parameters
+
+	returns:
+		[float, bool]: a prediction function and a boolean indicating whether the model is robust.
+	"""
 	split = dataset.training_splits()
 	Xt, Yt = split['X'], split['Y']
 	model = LinearSVC(loss=mp['loss'], penalty=mp['penalty'], fit_intercept=mp['fit_intercept'])
@@ -211,6 +280,15 @@ def _get_linsvc(dataset, mp):
 	return model.predict, False
 	
 def _get_fair_robust(dataset, mp):
+	"""
+	Train a unlabeled fair robust model
+
+	args:
+		dataset: dataset object
+		mp: model parameters
+
+	return a prediction function and a boolean indicating whether nsf is true or not (nsf = no solution found)
+	"""
 	split = dataset.training_splits()
 	Xt, Yt, St = split['X'], split['Y'], split['S']
 	Yt = 1.0*(Yt == 1)
@@ -221,40 +299,70 @@ def _get_fair_robust(dataset, mp):
 		return 1*(Yp==1) - 1*(Yp==0)
 	return predictf, False
 
-# Actual evaluation functions
+# Actual evaluation functions (necessary since functions are defined in a dictionary and cannot be passed as arguments)
 
 def eval_fairlearn(dataset, mp):
+	"""
+	Train a fairlearn model and return a prediction function.
+	"""
 	return _evaluate_model(dataset, _get_fairlearn, mp)
 
 def eval_fair_constraints(dataset, mp):
+	"""
+	Train a FairConstraints model and return a prediction function.
+	"""
 	return _evaluate_model(dataset, _get_fair_constraints, mp)
 
 def eval_hoeff_sc(dataset, mp):
+	"""
+	trains a hoeffding's inequality model and return a prediction function.
+	"""
 	trainf = lambda dataset, mp: _get_hoeff_sc(dataset, mp, enforce_robustness=False)
 	return _evaluate_model(dataset, trainf, mp)
 
 def eval_hoeff_sc_robust(dataset, mp):
+	"""
+	trains a robust hoeffding's inequality model and return a prediction function.
+	"""
 	trainf = lambda dataset, mp: _get_hoeff_sc(dataset, mp, enforce_robustness=True)
 	return _evaluate_model(dataset, trainf, mp)
 
 def eval_ttest_sc(dataset, mp):
+	"""
+	trains a t-test model and return a prediction function.
+	"""
 	trainf = lambda dataset, mp: _get_ttest_sc(dataset, mp, enforce_robustness=False)
 	return _evaluate_model(dataset, trainf, mp)
 
 def eval_ttest_sc_robust(dataset, mp):
+	""" 
+	train a robust t-test model and return a prediction function.
+	"""
 	trainf = lambda dataset, mp: _get_ttest_sc(dataset, mp, enforce_robustness=True)
 	return _evaluate_model(dataset, trainf, mp)
 
 def eval_sgd(dataset, mp):
+	"""
+	train a sgd model and return a prediction function.
+	"""
 	return _evaluate_model(dataset, _get_sgd, mp)
 
 def eval_svc(dataset, mp):
+	"""
+	train a svc model and return a prediction function.
+	"""
 	return _evaluate_model(dataset, _get_svc, mp)
 
 def eval_linsvc(dataset, mp):
+	"""
+	train a linear svc model and return a prediction function.
+	"""
 	return _evaluate_model(dataset, _get_linsvc, mp)
 
 def eval_fair_robust(dataset, mp):
+	"""
+	train a fair robust model and return a prediction function.
+	"""
 	return _evaluate_model(dataset, _get_fair_robust, mp)
 
 
@@ -263,6 +371,16 @@ def eval_fair_robust(dataset, mp):
 ######################
 
 def load_dataset(tparams, seed):
+	"""
+		load a dataset based on the parameters in tparams.
+	
+		args:
+			tparams: a dictionary of parameters
+			seed: random seed
+	
+		returns:	
+			dataset: a dataset object
+	"""
 	dset_args = {
 		'r_train'     : 1.0, 
 		'include_intercept' : True,
@@ -403,4 +521,3 @@ if __name__ == '__main__':
 		# print()
 		# # Run the experiment
 		# launcher.run(args.n_trials, save_path, model_evaluators, load_dataset, tparams, mparams, n_workers=args.n_jobs, seed=None)
-

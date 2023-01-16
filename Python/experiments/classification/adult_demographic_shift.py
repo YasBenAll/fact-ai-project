@@ -429,12 +429,12 @@ if __name__ == '__main__':
 		print(ds.make_intervals(Pr_D, args.dshift_alpha, epsilon=1e-3))
 
 
-		# print()
-		# # Create a results file and directory
-		# save_path = launcher.prepare_paths(args.base_path, tparams, mparams, smla_names, root='results', filename=None)
-		# print()
-		# # Run the experiment
-		# launcher.run(args.n_trials, save_path, model_evaluators, load_dataset, tparams, mparams, n_workers=args.n_jobs, seed=None)
+		print()
+		# Create a results file and directory
+		save_path = launcher.prepare_paths(args.base_path, tparams, mparams, smla_names, root='results', filename=None)
+		print()
+		# Run the experiment
+		launcher.run(args.n_trials, save_path, model_evaluators, load_dataset, tparams, mparams, n_workers=args.n_jobs, seed=None)
 
 
 		# tp = tparams[-1]

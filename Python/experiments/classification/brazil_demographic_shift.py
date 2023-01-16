@@ -150,10 +150,6 @@ def _get_hoeff_sc(dataset, mp, enforce_robustness=False):
 	sensitive_attrs = ['S', 'R']
 
 
-	print("\n\n\n\n\nUNIQUE KEYSSSSSSSSSS")
-	print(dataset._unique_values)
-
-
 	sensitive_attrs_to_cov_thresh = {'S':0.1,
 									 'R':{v:0.01 for v in dataset._unique_values['R']}}
 	w = fc_ut.train_model(X, Y, x_control, fc_lf._logistic_loss, apply_fairness_constraints, apply_accuracy_constraint, sep_constraint, sensitive_attrs, sensitive_attrs_to_cov_thresh, gamma)

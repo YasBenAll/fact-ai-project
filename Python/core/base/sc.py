@@ -232,7 +232,7 @@ class SeldonianClassifierBase:
 
 	# Model training
 
-	def fit(self, dataset, n_iters=1000, optimizer_name='linear-shatter', f=None, opt_params={}):
+	def fit(self, dataset, n_iters=1000, optimizer_name='linear-shatter', theta0=None, f=None, opt_params={}):
 		'''
 		I believe this is a crucial part of the algorithm
 		It splits the data, performs candidate selection my minimizing loss,

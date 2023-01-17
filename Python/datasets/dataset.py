@@ -8,7 +8,7 @@ from sklearn.gaussian_process.kernels import RBF
 class Dataset(object):
 	def __init__(self, n_candidate, n_safety, n_test, seed=None, meta_information={}, **contents):
 		# Record dataset split sizes
-		self._n_safety    = n_safety
+		self._n_safety    = n_safety 
 		self._n_candidate = n_candidate
 		self._n_test      = n_test
 		self._n_train     = n_candidate + n_safety
@@ -29,36 +29,56 @@ class Dataset(object):
 			'all'   : np.arange(0, self._n_samples),
 			'train' : np.arange(0, self._n_train),
 			'test'  : np.arange(self._n_train, self._n_samples),
-			'opt'   : np.arange(0, self._n_candidate),
-			'saf'   : np.arange(self._n_candidate, self._n_train)
+			'opt'   : np.arange(0, self._n_candidate), ###optimization (candidate) split
+			'saf'   : np.arange(self._n_candidate, self._n_train) ###safety split: train - candidate
 		}
 	
 	@property
 	def n_train(self):
+		###returns number of training samples
 		return len(self._inds['train'])
 	@property
 	def n_test(self):
+		###returns number of test samples
 		return len(self._inds['test'])
 	@property
 	def n_optimization(self):
+		###returns number of optimization samples
 		return len(self._inds['opt'])
 	@property
 	def n_safety(self):
+		###returns number of safety samples
 		return len(self._inds['saf'])
 
 	def _get_splits(self, index_key, keys=None):
+		"""
+	Get the splits for the data
+
+	Args:
+		index_key: index of the key for the split. Available incides are:
+		all, train, test, opt, saf
+		keys: number of keys for the split
+
+	Returns:
+		dict: return dictionary of data according to the split given
+	"""
 		keys = self._contents.keys() if (keys is None) else keys
 		inds = self._inds[index_key]
 		return { k:self._contents[k][inds] for k in keys }
 	def all_sets(self, keys=None):
+		###returns all data
 		return self._get_splits('all', keys=keys)
 	def training_splits(self, keys=None):
+		###returns training data
 		return self._get_splits('train', keys=keys)
 	def testing_splits(self, keys=None):
+		###returns test data
 		return self._get_splits('test', keys=keys)
 	def optimization_splits(self, keys=None):
+		###returns optimization data
 		return self._get_splits('opt', keys=keys)
 	def safety_splits(self, keys=None):
+		###returns safety data
 		return self._get_splits('saf', keys=keys)
 
 
@@ -70,12 +90,26 @@ class ClassificationDataset(Dataset):
 		self._labels = np.unique(all_labels)
 	@property
 	def n_features(self):
+		###returns number of data features for the classifier
 		return self._X.shape[1]
 	@property
 	def n_labels(self):
+		###returns number of data labels for the classifier
 		return len(self._labels)
 
 	def resample(self, n_candidate=None, n_safety=None, n_test=None, probf=None):
+		"""
+	Resample the classification data. (create new data based on observed data)
+
+	Args:
+		n_candidate: number of candidate samples
+		n_safety: number of safety samples
+		n_test: number of test samples
+		probf: probability for the resampling
+
+	Returns:
+		ClassificationDataset object: return ClassificationDataset object with the resampled data
+	"""
 		n_candidate = self._n_candidate if n_candidate is None else n_candidate
 		n_safety = self._n_safety if n_safety is None else n_safety
 		n_test = self._n_test if n_test is None else n_test
@@ -100,13 +134,13 @@ class RLDataset(object):
 		# Store the base datasets
 		T = T if not(T is None) else np.zeros(len(S))
 		self.gamma = gamma
-		self._S = S
-		self._A = A
-		self._R_raw = R
-		self._Rc = np.array([ Rc_func(s,a,r,t) for (s,a,r,t) in zip(S,A,R,T) ])
+		self._S = S ### State?
+		self._A = A ### Action?
+		self._R_raw = R ### Reward?
+		self._Rc = np.array([ Rc_func(s,a,r,t) for (s,a,r,t) in zip(S,A,R,T) ]) ### Correction on reward? Why?
 		self._apply_corrections = True
-		self._T = T
-		self._P = P
+		self._T = T ### not sure what T stands for
+		self._P = P ### not sure what P stands for
 		self.n_actions = n_actions
 		self.max_reward = max_reward
 		self.min_reward = min_reward
@@ -139,18 +173,23 @@ class RLDataset(object):
 
 	@property
 	def n_features(self):
+		###Return number of data features
 		return self._S[0].shape[1]
 	@property
 	def n_train(self):
+		###Return number of training samples
 		return len(self._inds['train'])
 	@property
 	def n_test(self):
+		###Return number of test samples
 		return len(self._inds['test'])
 	@property
 	def n_optimization(self):
+		###Return number of optimization samples
 		return len(self._inds['opt'])
 	@property
 	def n_safety(self):
+		###Return number of safety samples
 		return len(self._inds['saf'])
 
 	def _get_splits(self, index_key, t=None, corrected_R=True):
@@ -192,14 +231,19 @@ class RLDataset(object):
 		return self._P.copy()
 
 	def all_sets(self, t=None, corrected_R=True):
+		###Returns all data samples
 		return self._get_splits('all', t=t, corrected_R=corrected_R)
 	def training_splits(self, t=None, corrected_R=True):
+		###Returns training data
 		return self._get_splits('train', t=t, corrected_R=corrected_R)
 	def testing_splits(self, t=None, corrected_R=True):
+		###Returns test data
 		return self._get_splits('test', t=t, corrected_R=corrected_R)
 	def optimization_splits(self, t=None, corrected_R=True):
+		###Returns optimization data
 		return self._get_splits('opt', t=t, corrected_R=corrected_R)
 	def safety_splits(self, t=None, corrected_R=True):
+		###Returns safety data
 		return self._get_splits('saf', t=t, corrected_R=corrected_R)
 		
 	def all_sets_by_type(self, truncate=True, reorder=False, seed=None):

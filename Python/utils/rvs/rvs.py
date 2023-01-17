@@ -1,5 +1,5 @@
 import numpy as np
-import itertools 
+import itertools
 from scipy.stats   import norm, chi, t
 from scipy.special import erf, erfinv
 from scipy.stats import beta
@@ -49,7 +49,7 @@ class ConstraintManager():
 		self.identify_base_variables()
 
 		self._importance_samplers = importance_samplers
-		
+
 		self._demographic_variable    = demographic_variable
 		self._demographic_variable_values    = demographic_variable_values
 		self._demographic_marginals   = demographic_marginals
@@ -178,7 +178,7 @@ class ConstraintManager():
 
 
 					elif not(E._is_func is None):
-						# Now that we know the mean is well-defined, compute it. To account for importance 
+						# Now that we know the mean is well-defined, compute it. To account for importance
 						# sampling weights, we first represent the sum as a set of (num, den, val) triplets,
 						# where num and den encode the numerator and denominator of each importance weight,
 						# and val is the sum of the samples, for each corresponding unique input to th IS function.
@@ -190,7 +190,7 @@ class ConstraintManager():
 						C = E.sample_set.condition
 						if not(C is None):
 							is_inputs = is_inputs[self._evaluate(E.sample_set.condition)]
-						
+
 						unique_is_inputs = np.unique(is_inputs)
 						try:
 							nums, dens = is_func(unique_is_inputs)
@@ -205,13 +205,13 @@ class ConstraintManager():
 								iterable_den = iterable_den or is_iterable(den)
 
 						vals = [ np.mean(S[is_inputs==v]) for v in unique_is_inputs ]
-							
+
 						# Now we *might* compute the actual mean. If all of the numerators and denominators are
 						# known, then this s the weighted sums of (n/d)*v for each (n,d,v) triplet.
-						# However, it's possible that n or d can be a range, representing uncertainty in the 
+						# However, it's possible that n or d can be a range, representing uncertainty in the
 						# numerators or denominators. Thus, we cannot assign a unique value to the mean.
 						assert not(iterable_num or iterable_den), 'Cannot compute a single value for range-valued importance sampling weights.'
-						mean = 0.0		
+						mean = 0.0
 						for num,den,val in zip(nums, dens, vals):
 							mean += (num/den) * val
 						return mean
@@ -255,7 +255,7 @@ class ConstraintManager():
 				values = np.logical_or(values, self._evaluate(_E))
 			return values
 		if isinstance(E, expressions.FractionExpression):
-			v_num = self._evaluate(E._terms[0]) 
+			v_num = self._evaluate(E._terms[0])
 			v_den = self._evaluate(E._terms[1])
 			return safediv(v_num, v_den)
 		if isinstance(E, expressions.MaxExpression):
@@ -278,12 +278,16 @@ class ConstraintManager():
 	def upper_bound_constraints(self, all_deltas, mode='hoeffding', interval_scaling=1.0, n_scale=1.0, robustness_bounds={}, term_values={}, debug=False):
 		all_deltas = np.zeros(self.n_constraints) if all_deltas is None else all_deltas
 		self._tc.tic('bound_constraints')
+
+		# get bounds for each constraint
 		constraint_bounds = self.bound_constraints(all_deltas, mode=mode, interval_scaling=interval_scaling, n_scale=n_scale, robustness_bounds=robustness_bounds, term_values=term_values)
 		if debug:
 			print('CBs:', constraint_bounds)
 		self._tc.toc('bound_constraints')
+
+		# filter out only upper bounds
 		out = np.array([ b[1] for b in constraint_bounds ])
-		if debug:		
+		if debug:
 			print('-'*40)
 			self._tc.print_total_times()
 			self._tc.print_avg_times()
@@ -299,6 +303,24 @@ class ConstraintManager():
 		return np.array([ b[0] for b in constraint_bounds ])
 
 	def bound_constraints(self, all_deltas, mode='hoeffding', interval_scaling=1.0, n_scale=1.0, robustness_bounds={}, term_values={}):
+		'''
+		gets lower and upper bounds per contraint
+
+		Parameters
+		----------
+		all_deltas: some iterable
+		mode: str
+		interval_scaling: float
+		n_scale: float
+		robustness_bounds: dict
+		term_values: dict
+
+
+		Returns
+		-------
+		List[Tuple[float, float]]
+			a list of tuples with the lower and upper bounds per expression
+		'''
 		self._tc.tic('bound_constraints:setup')
 		assert self.has_defined_values(), 'ConstraintManager.bound(): Undefined values %r' % [ k for k,v in self.values.items() if v is None ]
 		deltas   = { name : None for name in self.expected_values }
@@ -314,7 +336,7 @@ class ConstraintManager():
 			variables = self.expected_values_per_constraint[cnum]
 
 			if len(variables) > 0:
-				delta_per_var = delta_tot / len(variables)			
+				delta_per_var = delta_tot / len(variables)
 				for name in variables:
 					epsilon = robustness_bounds[name] if name in robustness_bounds.keys() else 0.0
 					# if not(deltas[name] is None) and (deltas[name] == delta_per_var) and (epsilons[name] == epsilon):
@@ -338,7 +360,7 @@ class ConstraintManager():
 						else:
 							raise RuntimeWarning('Values have not been provided for term \'%s\'. Basing V off of unique values encountered in %d samples, which may be incomplete.' % (name,len(S)))
 							V = np.unique(S)
-						
+
 						if len(S) == 0:
 							ub, lb = V.max(), V.min()
 						else:
@@ -360,6 +382,21 @@ class ConstraintManager():
 		return constraint_bounds
 
 	def bound_expression(E, bounds):
+		'''
+		I believe this retuens lower and upper bound of an expression
+
+		Parameters
+		----------
+		E: Any
+			an expression
+		bounds: Dict
+
+
+		Returns
+		-------
+		Tuple[float, float]	
+			These are probably the upper and lower bound
+		'''
 		if isinstance(E, expressions.ConstantExpression):
 			return (E.value, E.value)
 		if isinstance(E, expressions.ExpectedValue):
@@ -395,8 +432,18 @@ class ConstraintManager():
 				l, u = min(interval_corners), max(interval_corners)
 			return (l,u)
 		if isinstance(E, expressions.FractionExpression):
-			ln, un = ConstraintManager.bound_expression(E._terms[0], bounds)
-			ld, ud = ConstraintManager.bound_expression(E._terms[1], bounds)
+			# ln, un = ConstraintManager.bound_expression(E._terms[0], bounds)
+			# ld, ud = ConstraintManager.bound_expression(E._terms[1], bounds)
+			temp1 = ConstraintManager.bound_expression(E._terms[0], bounds)
+			temp2 = ConstraintManager.bound_expression(E._terms[1], bounds)
+
+			if temp1 is None or temp2 is None:
+				return (-float('inf'), float('inf'))
+
+			ln, un = temp1
+			ld, ud = temp2
+
+
 			# If ln = un = ld = ud = 0, we return (-inf,inf) which is a useless bound, instead of (nan,nan)
 			# Values are based on treating the input intervals as open intervals
 			# If an interval is empty (l==u), it is treated as an infinitesimal interval (-e+l,l+e) instead
@@ -457,10 +504,10 @@ class ConstraintManager():
 				return (ui, li)
 
 	def bound_variable(self, name, delta, mode='hoeffding', n_scale=1.0, bootstrap_samples=1000):
-		# Returns a <delta>-probability confidence interval on the value of <name> using <mode>.	
+		# Returns a <delta>-probability confidence interval on the value of <name> using <mode>.
 		self._tc.tic(f'bound_constraints:bound_variable:{name}:setup')
-		E = self.expected_values[name] 
-		
+		E = self.expected_values[name]
+
 		mode = mode.lower()
 		if isinstance(E.sample_set.expression, (expressions.AndExpression,expressions.OrExpression)):
 			a, b = (0,1)
@@ -481,7 +528,7 @@ class ConstraintManager():
 			S = np.array([ S ])
 			n = len(S)
 		self._tc.toc(f'bound_constraints:bound_variable:{name}:evaluate')
-		
+
 		if (n == 0 or n_scale == 0):
 			return (a, b)
 
@@ -500,7 +547,7 @@ class ConstraintManager():
 			val = self._bound_variable_standard(E, S, n, delta, a, b, mode=mode, n_scale=n_scale)
 			self._tc.toc(f'bound_constraints:bound_variable:{name}:bound_normal')
 			return val
-		
+
 
 	def _bound_variable_with_demographic_shift(self, name, E, S, n, delta, a, b, mode='hoeffding', n_scale=1.0, bootstrap_samples=1000):
 		self._tc.tic(f'bound_constraints:bound_variable:{name}:bound_ds:evaluate')
@@ -508,7 +555,7 @@ class ConstraintManager():
 			D = self._evaluate(self._demographic_variable)
 			known_terms = self._known_demographic_terms[None]
 		else:
-			D = self._evaluate(self._demographic_variable)[self._evaluate(E.sample_set.condition)]		
+			D = self._evaluate(self._demographic_variable)[self._evaluate(E.sample_set.condition)]
 			known_terms = self._known_demographic_terms[E.sample_set.condition.name]
 		Q_D = self._demographic_marginals
 		self._tc.toc(f'bound_constraints:bound_variable:{name}:bound_ds:evaluate')
@@ -558,12 +605,12 @@ class ConstraintManager():
 			raise RuntimeError('Bootstrap bounds are not supported with demographic shift currently.')
 
 		#### Bounds below this point require more than two samples ####
-		
+
 		if len(S) <= 2:
 			return (a, b)
 
-		# Computes the t-test inversion bound 	
-		if mode == 'ttest': 
+		# Computes the t-test inversion bound
+		if mode == 'ttest':
 			self._tc.tic(f'bound_constraints:bound_variable:{name}:bound_ds:optimize_ttest')
 			if contains_intervals:
 				# f = lambda _q: -is_ttest(S, D, delta, _q, known_terms=known_terms, n_scale=n_scale)[1]
@@ -586,10 +633,10 @@ class ConstraintManager():
 
 
 	def _bound_variable_with_importance_sampling(self, E, S, n, delta, a, b, mode='hoeffding', n_scale=1.0, bootstrap_samples=1000):
-		n_scaled = n * n_scale	
+		n_scaled = n * n_scale
 
 
-		# Now that we know the mean is well-defined, compute it. To account for importance 
+		# Now that we know the mean is well-defined, compute it. To account for importance
 		# sampling weights, we first represent the sum as a set of (num, den, val) triplets,
 		# where num and den encode the numerator and denominator of each importance weight,
 		# and val is the sum of the samples, for each corresponding unique input to th IS function.
@@ -647,17 +694,17 @@ class ConstraintManager():
 			return (max(a,l), min(b,u))
 
 		#### Bounds below this point require at least two samples ####
-		
+
 		if len(S) == 1:
 			return (a, b)
 
-		# Computes the t-test inversion bound 	
-		if mode == 'ttest': 
+		# Computes the t-test inversion bound
+		if mode == 'ttest':
 			if not(iterable_num or iterable_den):
 				mean = 0.0
 				for num,den,val in zip(nums, dens, vals):
 					mean += (num/den) * val
-				# TODO THIS IS WRONG. DS ISNT INCORPORATED INTO THE STD TERM 
+				# TODO THIS IS WRONG. DS ISNT INCORPORATED INTO THE STD TERM
 				assert False, 'Importance weights are not yet supported for t-Test-based bounds.'
 				# Now that we know the standard deviation is well-defined, compute it
 				std = np.std(S,ddof=1)
@@ -668,12 +715,12 @@ class ConstraintManager():
 					elif np.isclose(mean, b):
 						return ((b-a)*(1-3.0/n_scaled)+a, b)
 					return (a, b)
-				
+
 				offset = std * t.ppf(1-delta/2,n-1) / np.sqrt(n-1)
 				l, u = safesum(mean,-offset), safesum(mean,offset)
 			else:
 				assert False, 'Importance weights are not yet supported for t-Test-based bounds.'
-			
+
 			return (max(a,l), min(b,u))
 
 
@@ -682,7 +729,7 @@ class ConstraintManager():
 
 
 	def _bound_variable_standard(self, E, S, n, delta, a, b, mode='hoeffding', n_scale=1.0, bootstrap_samples=1000):
-		n_scaled = n * n_scale	
+		n_scaled = n * n_scale
 
 		# Computes the hoeffding bound
 		if mode == 'hoeffding':
@@ -700,12 +747,12 @@ class ConstraintManager():
 			return (max(a,l), min(b,u))
 
 		#### Bounds below this point require at least two samples ####
-		
+
 		if len(S) == 1:
 			return (a, b)
 
-		# Computes the t-test inversion bound 	
-		if mode == 'ttest': 
+		# Computes the t-test inversion bound
+		if mode == 'ttest':
 			mean = np.mean(S)
 			# Now that we know the standard deviation is well-defined, compute it
 			std = np.std(S,ddof=1)

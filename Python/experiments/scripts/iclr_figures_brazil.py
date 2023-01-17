@@ -16,6 +16,8 @@ import matplotlib.gridspec as gridspec
 plt.rcParams['text.usetex'] = True
 plt.rcParams['text.latex.preamble'] = [r'\usepackage{amsmath}']
 
+matplotlib.rcParams.update(matplotlib.rcParamsDefault)
+
 if __name__ == '__main__':
 	with ArgumentSweeper() as parser:
 		parser.add_argument('--unknown_ds',  action='store_true', help='Generates results for the unknown_ds experiments.')
@@ -298,7 +300,7 @@ if __name__ == '__main__':
 			ax_ar.plot(nvals, (1-ar), c=c, ls=get_ls(mn), lw=get_lw(mn))[0]
 			ax_ar.fill_between(nvals, ((1-ar)+se), ((1-ar)-se), alpha=0.25, linewidth=0, color=c)
 		ax_ar.set_xlabel('Training Samples', labelpad=3.5)
-		ax_ar.set_ylabel('$\Pr(\\texttt{NO\_SOLUTION\_FOUND})$', labelpad=7)
+		ax_ar.set_ylabel('NO_SOLUTION_FOUND', labelpad=7)
 		# ax_ar.set_xscale("log")
 		ax_ar.set_xlim(right=max(nvals))
 		ax_ar.set_ylim((0,1))
@@ -402,7 +404,7 @@ if __name__ == '__main__':
 			ax_ar.plot(nvals, (1-ar), c=c, ls=get_ls(mn), lw=get_lw(mn))[0]
 			ax_ar.fill_between(nvals, ((1-ar)+se), ((1-ar)-se), alpha=0.25, linewidth=0, color=c)
 		ax_ar.set_xlabel('Training Samples', labelpad=3.5)
-		ax_ar.set_ylabel('$\Pr(\\texttt{NO\_SOLUTION\_FOUND})$', labelpad=7)
+		ax_ar.set_ylabel('NO_SOLUTION_FOUND', labelpad=7)
 		# ax_ar.set_xscale("log")
 		ax_ar.set_xlim(right=max(nvals))
 		ax_ar.set_ylim((0,1))
@@ -505,7 +507,7 @@ if __name__ == '__main__':
 			ax_ar.plot(nvals, (1-ar), c=c, ls=get_ls(mn), lw=get_lw(mn))[0]
 			ax_ar.fill_between(nvals, ((1-ar)+se), ((1-ar)-se), alpha=0.25, linewidth=0, color=c)
 		ax_ar.set_xlabel('Training Samples', labelpad=3.5)
-		ax_ar.set_ylabel('$\Pr(\\texttt{NO\_SOLUTION\_FOUND})$', labelpad=7)
+		ax_ar.set_ylabel('NO_SOLUTION_FOUND', labelpad=7)
 		# ax_ar.set_xscale("log")
 		ax_ar.set_xlim(right=max(nvals))
 		ax_ar.set_ylim((0,1))
@@ -608,7 +610,7 @@ if __name__ == '__main__':
 			ax_ar.plot(nvals, (1-ar), c=c, ls=get_ls(mn), lw=get_lw(mn))[0]
 			ax_ar.fill_between(nvals, ((1-ar)+se), ((1-ar)-se), alpha=0.25, linewidth=0, color=c)
 		ax_ar.set_xlabel('Training Samples', labelpad=3.5)
-		ax_ar.set_ylabel('$\Pr(\\texttt{NO\_SOLUTION\_FOUND})$', labelpad=7)
+		ax_ar.set_ylabel('NO_SOLUTION_FOUND', labelpad=7)
 		# ax_ar.set_xscale("log")
 		ax_ar.set_xlim(right=max(nvals))
 		ax_ar.set_ylim((0,1))
@@ -712,7 +714,7 @@ if __name__ == '__main__':
 			ax_ar.plot(nvals, (1-ar), c=c, ls=get_ls(mn), lw=get_lw(mn))[0]
 			ax_ar.fill_between(nvals, ((1-ar)+se), ((1-ar)-se), alpha=0.25, linewidth=0, color=c)
 		ax_ar.set_xlabel('Training Samples', labelpad=3.5)
-		ax_ar.set_ylabel('$\Pr(\\texttt{NO\_SOLUTION\_FOUND})$', labelpad=7)
+		ax_ar.set_ylabel('NO_SOLUTION_FOUND', labelpad=7)
 		# ax_ar.set_xscale("log")
 		ax_ar.set_xlim(right=max(nvals))
 		ax_ar.set_ylim((0,1))

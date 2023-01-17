@@ -11,6 +11,16 @@ from sklearn.cluster import KMeans
 
 
 def weighted_adult_data_with_unlabel(numpy_data):
+    """
+    Create a weighted dataset for adult data
+
+    args:
+        numpy_data: numpy array of adult data
+    
+    returns:
+        numpy_data_train: numpy array of weighted adult data
+    """
+
     train_size = 35000
     numpy_data_train = numpy_data[:train_size]
     weight = [1.0]*len(numpy_data_train)
@@ -83,6 +93,15 @@ def weighted_adult_data_with_unlabel(numpy_data):
 
 
 def weighted_adult_data_kmeans_wihtout_unlabel(numpy_data):
+    """
+    Create a weighted dataset for adult data (label using k-means)
+
+    args: 
+        numpy_data: numpy array of adult data
+
+    returns:
+        numpy_data_train: numpy array of weighted adult data
+    """
     train_size = 35000
     numpy_data_train = numpy_data[:train_size]
     maps_train = collections.defaultdict(list)
@@ -197,6 +216,7 @@ def weighted_adult_data_kmeans_wihtout_unlabel(numpy_data):
 
 
 def weighted_dutch_data_with_unlabel(numpy_data):
+    """(This function is never used)"""
     train_size = 45000
     numpy_data_train = numpy_data[:train_size]
     weight = [1.0] * len(numpy_data_train)
@@ -286,6 +306,7 @@ def weighted_dutch_data_with_unlabel(numpy_data):
 
 
 def weighted_dutch_data_kmeans_wihtout_unlabel(numpy_data):
+    """(This function is never used)"""
     train_size = 45000
     numpy_data_train = numpy_data[:train_size]
     weight = [1.0] * len(numpy_data_train)

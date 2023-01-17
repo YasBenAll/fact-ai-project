@@ -37,7 +37,9 @@ def get_clf_stats(dist_arr, dist_dict, y, x_sensitive, print_stats=False):
 
 
 def get_fp_fn_tp_tn(y_true, y_pred):
-    
+    """
+        Create confusion matrix
+    """
 
     def check_labels_bin(arr):
 

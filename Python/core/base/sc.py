@@ -2,7 +2,7 @@ import numpy as np
 from functools import partial
 
 from core.optimizers import OPTIMIZERS
-from utils.rvs import ConstraintManager
+from utils.rvs import ConstraintManager # this would be useful to understand
 
 from sys import float_info
 MAX_VALUE = float_info.max
@@ -22,7 +22,8 @@ class SeldonianClassifierBase:
 		self._term_values = term_values
 		self._cs_scale = cs_scale
 		self._seed = seed
-		# Set up the constraint manager to handle the input constraints
+		# Set up the constraint manager to handle the input constraints 
+		# keywords is the dictionary of contraint definition, given in line 375 (so this does not work as a standalone class)
 		self._cm       = ConstraintManager(constraint_strs, trivial_bounds={}, keywords=self.keywords, importance_samplers=importance_samplers, demographic_variable=demographic_variable, demographic_variable_values=demographic_variable_values, demographic_marginals=demographic_marginals, known_demographic_terms=known_demographic_terms, debug=False, timername='Constraints')
 		self._robust_loss = False if demographic_variable is None else robust_loss
 		if self._robust_loss:
@@ -87,6 +88,24 @@ class SeldonianClassifierBase:
 		return partial(self.predict, theta=theta)
 
 	def predict(self, X, theta=None):
+		'''
+		makes model predictions, either with a linear model, a rbf, or a mlp
+
+		interestingly this uses, depending on the model type, also 
+		self.model_params['hidden_layers'] or self.model_variables['X']
+
+		Arguments
+		---------
+		X: np.array
+			the predictive variables
+		theta: Union[np.array, Tuple]
+			model parameters
+
+		Returns
+		-------
+		np.array 
+			The predictions
+		'''
 		theta = self.theta if (theta is None) else theta
 		if self.model_type == 'linear':
 			return np.sign(X.dot(theta))
@@ -96,7 +115,7 @@ class SeldonianClassifierBase:
 			Y_ref = self.model_variables['Y']
 			P = np.sum((X_ref[:,None,:]-X[None,:,:])**2, axis=2)
 			K = np.exp(-0.5*P/(s**2))
-			return np.sign(np.einsum('n,n,nm->m', c, Y_ref, K)+b)
+			return np.sign(np.einsum('n,n,nm->m', c, Y_ref, K)+b) # not sure what this does but why would they use Y_ref to make predictions?
 		elif self.model_type == 'mlp':
 			A = X
 			for nh in self.model_params['hidden_layers']:
@@ -132,18 +151,49 @@ class SeldonianClassifierBase:
 	# Constraint evaluation
 
 	def _loss_using_cm(self):
+		'''
+		Returns
+		------
+		float
+			upper bound (HCUB) 
+		'''
 		# If demographic shift contains intervals, this will return the worst case error rate
 		return self._error_cm.upper_bound_constraints(None, mode='none', robustness_bounds=self._robustness_bounds, term_values=self._term_values)[0]
 
 	def safety_test(self):
+		'''
+		Returns
+		------
+		np.array
+			upper bound (HCUB) per constraint
+		'''
 		return self._cm.upper_bound_constraints(self.deltas, mode=self.ci_mode, interval_scaling=1.0, robustness_bounds=self._robustness_bounds, term_values=self._term_values)
 		
 	def predict_safety_test(self, data_ratio):
+		'''
+		
+		Parameters
+		----------
+		data_ratio: float
+			I believe its the ratio of data to use to have faster computation?
+
+		Returns
+		------
+		np.array
+			upper bound (HCUB) per constraint
+		'''
 		return self._cm.upper_bound_constraints(self.deltas, mode=self.ci_mode, interval_scaling=self._cs_scale, n_scale=data_ratio, robustness_bounds=self._robustness_bounds, term_values=self._term_values)
 
 	# Candidate selection
 
 	def candidate_objective(self, theta, split, data_ratio):
+		'''
+
+		Returns
+		-------
+		float 
+
+		'''
 		self._tc.tic('eval_c_obj')
 		self._tc.tic('set_cm_data')
 		self.set_cm_data(self.get_predictf(theta), split)
@@ -151,15 +201,26 @@ class SeldonianClassifierBase:
 		self._tc.tic('c_obj_predict_safety_test')
 		sc_ubs = self.predict_safety_test(data_ratio)
 		self._tc.toc('c_obj_predict_safety_test')
+
+		# if any of the upper bounds is nan,return high value
 		if any(np.isnan(sc_ubs)):
 			self._tc.toc('eval_c_obj')
 			return MAX_VALUE
+
+		# if all upper bounds <= 0:
+		#	if _robust_loss: (I believe this means shifty)
+		# 		return HCUB of first contraint
+		#	else:
+		#		return usual loss
 		elif (sc_ubs <= 0.0).all():
 			self._tc.tic('c_obj_compute_loss')
 			val = self._loss_using_cm() if self._robust_loss else self._loss(split['X'], split['Y'], theta=theta)
 			self._tc.toc('c_obj_compute_loss')
 			self._tc.toc('eval_c_obj')
 			return val
+
+		# what is self.shape_error about?
+		# return 1 + upper bound
 		elif self.shape_error:
 			self._tc.tic('c_obj_shape_error')
 			sc_ub_max = np.maximum(np.minimum(sc_ubs, MAX_VALUE), 0.0).sum()
@@ -171,7 +232,35 @@ class SeldonianClassifierBase:
 
 	# Model training
 
-	def fit(self, dataset, n_iters=1000, optimizer_name='linear-shatter', theta0=None, opt_params={}):
+	def fit(self, dataset, n_iters=1000, optimizer_name='linear-shatter', f=None, opt_params={}):
+		'''
+		I believe this is a crucial part of the algorithm
+		It splits the data, performs candidate selection my minimizing loss,
+		and tests if the trained model is indeed fair
+
+		It returns a boolean whether the model is fair or not,
+		and saves the model parameters as a class variable
+
+		Parameters
+		----------
+		dataset: ?
+			I guess the dataset whatever that is
+		n_iters: int
+			number of interations given optimizer will perform
+		optimizer_name: str
+			name of the classification model to use
+		theta0: ?
+			probably the init weights for the optimizer
+		f: ?
+			its also never used anywhere??
+		opt_params: dict
+			additional parameters for the optimizer
+
+		Returns
+		-------
+		bool
+			Whether a fair model was trained or not
+		'''
 		self.dataset = dataset
 		opt = self.get_optimizer(optimizer_name, dataset, opt_params=opt_params)
 
@@ -181,7 +270,7 @@ class SeldonianClassifierBase:
 		# Compute number of samples of g(theta) for the candidate and safety sets
 		# Note: This assumes that the number of samples used to estimate g(theta)
 		#       doesn't depend on theta itself.  
-		data_ratio = dataset.n_safety/dataset.n_optimization
+		data_ratio = dataset.n_safety/dataset.n_optimization # TODO this is where the split ratio is calculated - but what is n_safety and n_optimization?
 
 		# Get the optimizer and set the candidate selection function
 		split = dataset.optimization_splits()
@@ -204,12 +293,30 @@ class SeldonianClassifierBase:
 		self.set_cm_data(predictf, dataset.safety_splits())
 		st_thresholds = self.safety_test()
 		accept = False if any(np.isnan(st_thresholds)) else (st_thresholds <= 0.0).all()
-		return accept
+		return accept # returns false if any threshold is nan or > 0
 		# return True
 
 	# Model evaluation
 
 	def evaluate(self, dataset, predictf=None, override_is_seldonian=False):
+		'''
+
+
+		Parameters
+		----------
+		dataset: ?
+			the dataset
+		predictf: function
+			I believe this is a function to make predictions
+		overwwide_is_seldonian: bool
+			if no predictf is given, is_seldonian will be set to this value
+
+		Returns
+		------
+		dict
+			containt information whether algorithm can be accepted, 
+			confidence levels for the contraints, and safety thresholds 
+		'''
 		ds_ratio = dataset.n_safety / dataset.n_optimization
 		meta   = {}
 		splits = {'candidate' : dataset.optimization_splits(),
@@ -265,7 +372,10 @@ class SeldonianClassifierBase:
 ########################
 
 class SeldonianClassifier(SeldonianClassifierBase):
-	keywords = {
+	'''
+	this class could be considered the shifty algorithm, but can probably also be used for the other algorithms
+	'''
+	keywords = { # I believe this is a dictionary of contraint definitions
 			'FPR' : 'E[Yp=1|Y=-1]',
 			'FNR' : 'E[Yp=-1|Y=1]',
 			'TPR' : 'E[Yp=1|Y=1]',
@@ -278,6 +388,9 @@ class SeldonianClassifier(SeldonianClassifierBase):
 		super().__init__(constraint_strs, shape_error=shape_error, verbose=verbose, model_type=model_type, model_params=model_params, ci_mode=ci_mode, robustness_bounds=robustness_bounds, term_values=term_values, cs_scale=cs_scale, importance_samplers=importance_samplers, demographic_variable=demographic_variable, demographic_variable_values=demographic_variable_values, demographic_marginals=demographic_marginals, known_demographic_terms=known_demographic_terms, seed=seed, robust_loss=robust_loss)
 
 class SeldonianMCClassifier(SeldonianClassifierBase):
+	'''
+	this seems to me for multiclass classification, but it wasnt talked about in the paper so we can probably ignore this 
+	'''
 	def __init__(self, epsilons, deltas, shape_error=False, verbose=False, model_type='linear', n_classes=2, model_params={}, loss_weights=None, robustness_bounds={}, term_values={}):
 		self.n_classes = n_classes
 		self.loss_weights = 1 - np.eye(n_classes) if (loss_weights is None) else loss_weights

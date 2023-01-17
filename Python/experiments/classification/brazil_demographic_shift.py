@@ -55,7 +55,7 @@ def _evaluate_model(dataset, trainf, mp):
 	cm = get_classification_cm(mp['constraints']) 
 
 	# Resample the base dataset uniformly to obtain a training dataset
-	n_train = dataset.resample_n_train 
+	n_train = dataset.resample_n_train
 	n_candidate = np.floor(mp['r_cand_v_safe'] * n_train).astype(int)
 	n_safety   = n_train - n_candidate
 	dataset0 = dataset.resample(n_candidate=n_candidate, n_safety=n_safety, n_test=0)
@@ -64,7 +64,7 @@ def _evaluate_model(dataset, trainf, mp):
 	t = time()-t
 	dshift_opts = {	k:mp[k] for k in ['demographic_variable', 'demographic_variable_values', 'demographic_marginals','known_demographic_terms']}
 	acc_orig, g_orig, acc_ant, g_ant = ds.evaluate_antagonistic_demographic_shift(predictf, mp['constraints'], dataset, dshift_opts)
-	
+
 	return {
 		'original_nsf'   : is_nsf,
 		'original_acc'   : acc_orig,
@@ -106,7 +106,7 @@ def _get_fairlearn(dataset, mp):
 		'equalopportunity'   : moments.EO,
 		'predictiveequality' : moments.EO }
 	cons = defs[mp['definition'].lower()]()
-	
+
 	# Train fairlearn using expgrad with a linear SVC
 	base_model = LinearSVC(loss=mp['loss'], penalty=mp['penalty'], fit_intercept=mp['fit_intercept'])
 	results, hs = expgrad(Xt, Tt, Yt, base_model, cons=cons, eps=mp['fl_e'])
@@ -131,7 +131,7 @@ def _get_fair_constraints(dataset, mp):
 		tuple[int, bool]: A prediction function and a boolean indicating whether a solution is found for the model (nsf = no solution found)
 	"""
 	# FairConstraints is constructed to simultaneously enforce disparate impact and disparate treatment,
-	# thus the training process is the same regardless of the actual definition we're evaluating.	
+	# thus the training process is the same regardless of the actual definition we're evaluating.
 	# Configure the constraints and weights
 	apply_fairness_constraints = 1
 	apply_accuracy_constraint  = 0
@@ -143,7 +143,8 @@ def _get_fair_constraints(dataset, mp):
 	X, Y, S, R = split['X'], split['Y'], split['S'], split['R']
 	x_control = {'S':S.astype(np.int64), 'R':R.astype(np.int64)}
 	sensitive_attrs = ['S', 'R']
-	sensitive_attrs_to_cov_thresh = {'S':0.1, 
+
+	sensitive_attrs_to_cov_thresh = {'S':0.1,
 									 'R':{v:0.01 for v in dataset._unique_values['R']}}
 	w = fc_ut.train_model(X, Y, x_control, fc_lf._logistic_loss, apply_fairness_constraints, apply_accuracy_constraint, sep_constraint, sensitive_attrs, sensitive_attrs_to_cov_thresh, gamma)
 	def predictf(_X):
@@ -189,7 +190,9 @@ def _get_hoeff_sc(dataset, mp, enforce_robustness=False):
 	X, Y, S, R = split['X'], split['Y'], split['S'], split['R']
 	x_control = {'S':S.astype(np.int64), 'R':R.astype(np.int64)}
 	sensitive_attrs = ['S', 'R']
-	sensitive_attrs_to_cov_thresh = {'S':0.1, 
+
+
+	sensitive_attrs_to_cov_thresh = {'S':0.1,
 									 'R':{v:0.01 for v in dataset._unique_values['R']}}
 	w = fc_ut.train_model(X, Y, x_control, fc_lf._logistic_loss, apply_fairness_constraints, apply_accuracy_constraint, sep_constraint, sensitive_attrs, sensitive_attrs_to_cov_thresh, gamma)
 
@@ -231,7 +234,7 @@ def _get_ttest_sc(dataset, mp, enforce_robustness=False):
 	X, Y, S, R = split['X'], split['Y'], split['S'], split['R']
 	x_control = {'S':S.astype(np.int64), 'R':R.astype(np.int64)}
 	sensitive_attrs = ['S', 'R']
-	sensitive_attrs_to_cov_thresh = {'S':0.1, 
+	sensitive_attrs_to_cov_thresh = {'S':0.1,
 									 'R':{v:0.01 for v in dataset._unique_values['R']}}
 	w = fc_ut.train_model(X, Y, x_control, fc_lf._logistic_loss, apply_fairness_constraints, apply_accuracy_constraint, sep_constraint, sensitive_attrs, sensitive_attrs_to_cov_thresh, gamma)
 
@@ -278,7 +281,7 @@ def _get_linsvc(dataset, mp):
 	model = LinearSVC(loss=mp['loss'], penalty=mp['penalty'], fit_intercept=mp['fit_intercept'])
 	model.fit(Xt, Yt)
 	return model.predict, False
-	
+
 def _get_fair_robust(dataset, mp):
 	"""
 	Train a unlabeled fair robust model
@@ -382,16 +385,16 @@ def load_dataset(tparams, seed):
 			dataset: a dataset object
 	"""
 	dset_args = {
-		'r_train'     : 1.0, 
+		'r_train'     : 1.0,
 		'include_intercept' : True,
-		'include_R'   : tparams['include_R'], 
-		'include_S'   : tparams['include_S'], 
+		'include_R'   : tparams['include_R'],
+		'include_S'   : tparams['include_S'],
 		'use_pct'     : 1.0,
 		'seed'        : seed,
-		'gpa_cutoff'  : tparams['gpa_cutoff'], 
+		'gpa_cutoff'  : tparams['gpa_cutoff'],
 		'standardize' : tparams['standardize']
 	}
-	dataset = brazil.load(**dset_args)	
+	dataset = brazil.load(**dset_args)
 	dataset.resample_n_train = tparams['n_train']
 	return dataset
 
@@ -403,9 +406,9 @@ def load_dataset(tparams, seed):
 if __name__ == '__main__':
 
 	# Note: This script computes experiments for the cross product of all values given for the
-	#       sweepable arguments. 
+	#       sweepable arguments.
 	# Note: Sweepable arguments allow inputs of the form, <start>:<end>:<increment>, which are then
-	#       expanded into ranges via np.arange(<start>, <end>, <increment>). 
+	#       expanded into ranges via np.arange(<start>, <end>, <increment>).
 	with ArgumentSweeper() as parser:
 		parser.add_argument('base_path', type=str)
 		parser.add_argument('--gpa_cutoff', type=float, default=3.5,  help='Cutoff for defining "good" GPA.')
@@ -431,7 +434,7 @@ if __name__ == '__main__':
 		args = parser.parse_args()
 		args_dict = dict(args.__dict__)
 
-		# Generate the constraints and deltas		
+		# Generate the constraints and deltas
 		population  = brazil.load()
 		if args.dshift_var.lower()[0] == 's':
 			constraints = make_constraints(args.definition, 'R', np.unique(population._R), args.e)
@@ -445,7 +448,7 @@ if __name__ == '__main__':
 		print('   Interpreting constraint string \'%s\''  % constraints[0])
 		print('                               as \'%r\'.' % get_parser().parse(constraints[0]))
 
-		
+
 		smla_names = ['SC', 'QSC', 'SRC', 'QSRC']
 		model_evaluators = {
 			'SC'           : eval_hoeff_sc,
@@ -510,14 +513,15 @@ if __name__ == '__main__':
 		# mparams['LinSVC'].update(loss=['hinge'], penalty='l2', fit_intercept=False)
 		mparams['FairConst'].update(cov=[0.01])
 		mparams['FairlearnSVC'].update(loss=['hinge'], penalty='l2', fit_intercept=False, fl_e=[0.01, 0.1])
-		
+
 		#    Expand the parameter sets into a set of configurations
 		args_to_expand = parser._sweep_argnames + ['loss', 'kernel', 'cov', 'fl_e', 'n_train']
-		tparams, mparams = launcher.make_parameters(tparams, mparams, expand=args_to_expand)	
 
-		# print()
-		# # Create a results file and directory
-		# save_path = launcher.prepare_paths(args.base_path, tparams, mparams, smla_names, root='results', filename=None)
-		# print()
-		# # Run the experiment
-		# launcher.run(args.n_trials, save_path, model_evaluators, load_dataset, tparams, mparams, n_workers=args.n_jobs, seed=None)
+		tparams, mparams = launcher.make_parameters(tparams, mparams, expand=args_to_expand)
+
+		print()
+		# Create a results file and directory
+		save_path = launcher.prepare_paths(args.base_path, tparams, mparams, smla_names, root='results', filename=None)
+		print()
+		# Run the experiment
+		launcher.run(args.n_trials, save_path, model_evaluators, load_dataset, tparams, mparams, n_workers=args.n_jobs, seed=None)

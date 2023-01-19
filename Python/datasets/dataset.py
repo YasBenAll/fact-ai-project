@@ -7,61 +7,75 @@ from sklearn.gaussian_process.kernels import RBF
 
 class Dataset(object):
 	def __init__(self, n_candidate, n_safety, n_test, seed=None, meta_information={}, **contents):
+		""" This is the base class for all datasets. It is used to store the data and provide access to the splits.
+
+		Parameters: 
+			n_candidate: number of candidate samples
+			n_safety: number of safety samples
+			n_test: number of test samples
+			seed: seed for the random number generator
+			meta_information: dictionary of meta information
+			**contents: dictionary of data
+		
+		Output: 
+			Dataset object: return Dataset object with the data and splits.
+
+		"""
 		# Record dataset split sizes
-		self._n_safety    = n_safety 
-		self._n_candidate = n_candidate
-		self._n_test      = n_test
-		self._n_train     = n_candidate + n_safety
-		self._n_samples   = self._n_train + n_test
+		self._n_safety    = n_safety # safety split
+		self._n_candidate = n_candidate # optimization (candidate) split
+		self._n_test      = n_test # test split
+		self._n_train     = n_candidate + n_safety # training split
+		self._n_samples   = self._n_train + n_test # all split
 
-		self._seed = seed
-		self._meta_information = meta_information
+		self._seed = seed 
+		self._meta_information = meta_information 
 
-		self._contents = deepcopy(contents)
-		self._unique_values = {}
+		self._contents = deepcopy(contents) 
+		self._unique_values = {} # unique values for each feature
 		for k, v in contents.items():
+			# Check that the data is a numpy array
 			setattr(self, '_%s' % k, v)
-
 			if v.dtype == np.dtype(np.int32):
+				# If the data is an integer, then compute the unique values
 				self._unique_values[k] = np.unique(v)
 
 		# Compute indices for the splits
 		self._inds = {
 			'all'   : np.arange(0, self._n_samples),
 			'train' : np.arange(0, self._n_train),
-			'test'  : np.arange(self._n_train, self._n_samples),
-			'opt'   : np.arange(0, self._n_candidate), ###optimization (candidate) split
-			'saf'   : np.arange(self._n_candidate, self._n_train) ###safety split: train - candidate
+			'test'  : np.arange(self._n_train, self._n_samples), 
+			'opt'   : np.arange(0, self._n_candidate), 
+			'saf'   : np.arange(self._n_candidate, self._n_train) 
 		}
 
 	@property
 	def n_train(self):
-		###returns number of training samples
+		"""returns number of training samples"""
 		return len(self._inds['train'])
 	@property
 	def n_test(self):
-		###returns number of test samples
+		"""returns number of test samples"""
 		return len(self._inds['test'])
 	@property
 	def n_optimization(self):
-		###returns number of optimization samples
+		"""returns number of optimization samples"""
 		return len(self._inds['opt'])
 	@property
 	def n_safety(self):
-		###returns number of safety samples
+		"""returns number of safety samples"""
 		return len(self._inds['saf'])
 
 	def _get_splits(self, index_key, keys=None):
 		"""
-	Get the splits for the data
+	Get the data for a given split.
 
 	Args:
-		index_key: index of the key for the split. Available incides are:
-		all, train, test, opt, saf
-		keys: number of keys for the split
+		index_key: index of the key for the split. Available indices are: 'all', 'train', 'test', 'opt', 'saf'
+		keys: list of keys for the data to return. If None, then return all data.
 
 	Returns:
-		dict: return dictionary of data according to the split given
+		dictionary: return dictionary of data for the given split. 
 	"""
 		keys = self._contents.keys() if (keys is None) else keys
 		inds = self._inds[index_key]
@@ -85,40 +99,59 @@ class Dataset(object):
 
 class ClassificationDataset(Dataset):
 	def __init__(self, all_labels, n_candidate, n_safety, n_test, seed=None, meta_information={}, **contents):
+		"""
+		This is the base class for all classification datasets. It is used to store the data and provide access to the splits. 
+		
+		Parameters:
+			all_labels: list of all possible labels
+			n_candidate: number of candidate samples
+			n_safety: number of safety samples
+			n_test: number of test samples
+			seed: seed for the random number generator
+			meta_information: dictionary of meta information.
+			**contents: dictionary of data
+		
+		Output:
+			ClassificationDataset object: return ClassificationDataset object with the data and splits.
+			"""
 		assert 'X' in contents.keys(), 'ClassificationDataset.__init__(): Feature matrix \'X\' is not defined.'
 		assert 'Y' in contents.keys(), 'ClassificationDataset.__init__(): Label vector \'Y\' is not defined.'
 		super().__init__(n_candidate, n_safety, n_test, seed=seed, meta_information=meta_information, **contents)
 		self._labels = np.unique(all_labels)
 	@property
 	def n_features(self):
-		###returns number of data features for the classifier
+		"""returns number of features"""
 		return self._X.shape[1]
 	@property
 	def n_labels(self):
-		###returns number of data labels for the classifier
+		"""returns number of labels"""
 		return len(self._labels)
 
 	def resample(self, n_candidate=None, n_safety=None, n_test=None, probf=None):
 		"""
-	Resample the classification data. (create new data based on observed data)
-
-	Args:
-		n_candidate: number of candidate samples
-		n_safety: number of safety samples
-		n_test: number of test samples
-		probf: probability for the resampling
-
-	Returns:
-		ClassificationDataset object: return ClassificationDataset object with the resampled data
-	"""
+		
+		Resample the data for the splits.
+		
+		Parameters:
+			n_candidate: number of candidate samples
+			n_safety: number of safety samples
+			n_test: number of test samples
+			probf: function that returns the probability of a sample being selected. 
+			The function should take the index, feature vector, label, and time as input and return the probability of the sample being selected.
+			
+		Returns:
+			ClassificationDataset object: return ClassificationDataset object with the data and splits. 
+			"""
 		n_candidate = self._n_candidate if n_candidate is None else n_candidate
 		n_safety = self._n_safety if n_safety is None else n_safety
 		n_test = self._n_test if n_test is None else n_test
-		n = len(self._X)
+		n = len(self._X) 
 		rand = np.random.RandomState(self._seed)
 		if probf is None:
+			# uniform sampling
 			P = np.ones(n) / n
 		else:
+			# sample according to the probability function
 			P = np.array([ probf(i,x,y,t) for i,(x,y,t) in enumerate(zip(self._X, self._R, self._T)) ])
 
 		I = rand.choice(n, n_candidate+n_safety+n_test, replace=True, p=P)

@@ -12,6 +12,42 @@ from utils import keyboard, TimerCollection
 
 class SeldonianClassifierBase:
 	def __init__(self, constraint_strs, shape_error, model_type, model_params, verbose=False, ci_mode='hoeffding', robustness_bounds={}, term_values={}, cs_scale=2.0, importance_samplers={}, demographic_variable=None, demographic_variable_values=[], demographic_marginals=[], known_demographic_terms=None, seed=None, robust_loss=False):
+		"""
+		Parameters
+		----------
+		constraint_strs : list of str
+			List of constraints to be satisfied by the classifier.
+		shape_error : float
+			Maximum error allowed in the shape of the classifier.
+		model_type : str
+			Type of model to use. Currently supported: 'linear', 'logistic', 'svm', 'tree', 'forest', 'nn'.
+		model_params : dict
+			Parameters for the model.
+		verbose : bool
+			Whether to print out information about the optimization process.
+		ci_mode : str
+			How to compute confidence intervals. Currently supported: 'hoeffding', 'bootstrap'.
+		robustness_bounds : dict
+			Bounds on the robustness of the classifier.
+		term_values : dict
+			Values of the terms in the constraints.
+		cs_scale : float
+			Scale of the confidence set.
+		importance_samplers : dict
+			Importance samplers for the constraints.
+		demographic_variable : str
+			Demographic variable to use.
+		demographic_variable_values : list of str
+			Values of the demographic variable.
+		demographic_marginals : list of float
+			Marginals of the demographic variable.
+		known_demographic_terms : dict
+			Values of the terms in the constraints for each value of the demographic variable.
+		seed : int
+			Random seed.
+		robust_loss : bool
+			Whether to use the robust loss function.
+		"""
 		self.shape_error = shape_error
 		self.verbose     = verbose
 		self.model_type      = model_type
@@ -384,6 +420,44 @@ class SeldonianClassifier(SeldonianClassifierBase):
 			'NR'  : 'E[Yp=-1]'
 		}
 	def __init__(self, constraint_strs, deltas, shape_error=False, verbose=False, model_type='linear', model_params={}, ci_mode='hoeffding', robustness_bounds=[], term_values={}, cs_scale=2.0, importance_samplers={}, demographic_variable=None, demographic_variable_values=[], demographic_marginals=[], known_demographic_terms=None, seed=None, robust_loss=False):
+		"""
+		Parameters
+		----------
+		constraint_strs: list of strings
+			list of constraints to be used
+		deltas: list of floats
+			list of deltas to be used
+		shape_error: bool
+			whether to use shape error
+		verbose: bool
+			whether to print out information
+		model_type: string
+			type of model to use
+		model_params: dict
+			dictionary of parameters for the model
+		ci_mode: string
+			how to compute confidence intervals
+		robustness_bounds: list of floats
+			list of robustness bounds
+		term_values: dict
+			dictionary of term values
+		cs_scale: float
+			scale for confidence set
+		importance_samplers: dict
+			dictionary of importance samplers
+		demographic_variable: string
+			demographic variable
+		demographic_variable_values: list of strings
+			list of demographic variable values
+		demographic_marginals: list of floats
+			list of demographic marginals
+		known_demographic_terms: dict
+			dictionary of known demographic terms
+		seed: int
+			seed for random number generator
+		robust_loss: bool
+			whether to use robust loss
+		"""
 		self.deltas = deltas
 		super().__init__(constraint_strs, shape_error=shape_error, verbose=verbose, model_type=model_type, model_params=model_params, ci_mode=ci_mode, robustness_bounds=robustness_bounds, term_values=term_values, cs_scale=cs_scale, importance_samplers=importance_samplers, demographic_variable=demographic_variable, demographic_variable_values=demographic_variable_values, demographic_marginals=demographic_marginals, known_demographic_terms=known_demographic_terms, seed=seed, robust_loss=robust_loss)
 

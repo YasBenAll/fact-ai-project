@@ -24,7 +24,7 @@ from utils.argsweep    import ArgumentSweeper
 from utils.rvs         import ConstraintManager, get_parser, get_classification_cm
 from utils.constraints import make_constraints
 from utils.experiments import launcher
-from utils.experiments import demographic_shift as ds
+from utils.experiments import demographic_shift as ds # TODO this computes the bounds
 import utils
 
 import sys
@@ -321,7 +321,7 @@ if __name__ == '__main__':
 		parser.add_sweepable_argument('--model_type',     type=str, default='linear', nargs='*', help='Base model type to use for SMLAs.')
 		parser.add_argument('--fixed_dist',  action='store_true',      help='Fixed the distribution post-deployment (only works when dshift_var=race.')
 		parser.add_argument('--dshift_var', type=str,       default='race', help='Choice of variable to evaluate demographic shift for.')
-		parser.add_argument('--dshift_alpha', type=float,   default=0.1,    help='Width of intervals around true marginals representing valid demographic shifts.')
+		parser.add_argument('--dshift_alpha', type=float,   default=0.1,    help='Width of intervals around true marginals representing valid demographic shifts.') # TODO this is the interpolation factor
 		parser.add_argument('--cs_scale', type=float, default=1.0,  help='Scaling factor for predicted confidence intervals during candidate selection.')
 		args = parser.parse_args()
 		args_dict = dict(args.__dict__)
@@ -425,7 +425,7 @@ if __name__ == '__main__':
 		args_to_expand = parser._sweep_argnames + ['loss', 'kernel', 'cov', 'fl_e', 'n_train']
 		tparams, mparams = launcher.make_parameters(tparams, mparams, expand=args_to_expand)	
 
-		print(ds.make_intervals(Pr_D, args.dshift_alpha, epsilon=1e-3))
+		print(ds.make_intervals(Pr_D, args.dshift_alpha, epsilon=1e-3)) # TODO I think this relates to the bounds
 		print(ds.make_intervals(Pr_D, args.dshift_alpha, epsilon=1e-3))
 
 

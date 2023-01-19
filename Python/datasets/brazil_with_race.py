@@ -5,9 +5,11 @@ import os.path
 from datasets.dataset import ClassificationDataset
 from utils.dataset import standardized, with_intercept, with_feature
 
-BASE_URL = os.path.join('datasets', 'brazil', 'brazil_with_race.npz')
+BASE_URL = os.path.join('datasets', 'brazil', 'brazil_with_race.npz') 
 
 def load(gpa_cutoff=3.0, r_train=0.4, r_candidate=0.2, seed=None, include_intercept=True, use_pct=1.0, include_R=False, include_S=False, standardize=False):
+	"""
+	Load the Brazilian dataset with   """
 	meta_information = {
 		'standardized' 		: standardize,
 		'include_R'    		: include_R,

@@ -69,7 +69,7 @@ class SeldonianClassifierBase:
 
 	# Accessor for different optimizers
 
-	def get_optimizer(self, name, dataset, opt_params={}):
+	def get_optimizer(self, name, dataset, opt_params={}): # TODO these are the optimizer options
 		if name == 'linear-shatter':
 			assert self.model_type == 'linear', 'SeldonianClassifierBase.get_optimizer(): linear-shatter optimizer is only compatible with a linear model.'
 			return OPTIMIZERS[name](dataset.X, buffer_angle=5.0, has_intercept=False, use_chull=True)

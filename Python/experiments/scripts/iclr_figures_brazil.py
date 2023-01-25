@@ -31,7 +31,7 @@ if __name__ == '__main__':
 	figpath = f'figures/iclr_{mode}_demographic_shift_brazil_rl'
 
 	# Figure format
-	fmt = 'pdf'
+	fmt = 'png'
 	if fmt == 'pdf':
 		matplotlib.rc('pdf', fonttype=42)
 
@@ -50,7 +50,7 @@ if __name__ == '__main__':
 	def thousands_fmt(x, pos):
 		return f'{x/10**3:,.0f}K'
 	def percentage_fmt(x, pos):
-		return f'{x:,.0f}\%'
+		return f'{x:,.2f}%'
 	ThousandsFmt = mtick.FuncFormatter(thousands_fmt)
 	PercentageFmt = mtick.FuncFormatter(percentage_fmt)
 

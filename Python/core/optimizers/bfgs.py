@@ -17,9 +17,9 @@ class BFGSOptimizer(SMLAOptimizer):
 	def cli_key():
 		return 'bfgs'
 
-	def minimize(self, evalf, n_iters):
+	def minimize(self, evalf, n_iters, theta0):
 		np.random.seed(np.floor(100000*(time()%10)).astype(int))
-		theta_opt = None
+		# theta_opt = None
 		val_min = np.inf
 		for _ in range(self.restarts):
 			x0 = 2.0 * np.random.random(self.n_features) - 1.0

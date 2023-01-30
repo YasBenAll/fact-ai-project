@@ -48,11 +48,11 @@ def _evaluate_model(dataset, trainf, mp):
 		trainf: A function that takes a dataset and mp and returns a prediction function and a boolean indicating whether the model is non-saturating
 		mp: A dictionary of model parameters
 
-	Returns: 
+	Returns:
 		[dict]: A dictionary containing the results of the evaluation
 	"""
 	# TODO - find out whether variable cm can be removed or not.
-	cm = get_classification_cm(mp['constraints']) 
+	cm = get_classification_cm(mp['constraints'])
 
 	# Resample the base dataset uniformly to obtain a training dataset
 	n_train = dataset.resample_n_train
@@ -83,7 +83,7 @@ def _get_fairlearn(dataset, mp):
 		dataset: A dataset object
 		mp: A dictionary of model parameters
 
-	Returns: 
+	Returns:
 		[predictf, is_nsf]: A prediction function and a boolean indicating whether a solution is found for the model (nsf = no solution found)
 	"""
 	# Train the model
@@ -127,7 +127,7 @@ def _get_fair_constraints(dataset, mp):
 		dataset: A dataset object
 		mp: A dictionary of model parameters
 
-	Returns: 
+	Returns:
 		tuple[int, bool]: A prediction function and a boolean indicating whether a solution is found for the model (nsf = no solution found)
 	"""
 	# FairConstraints is constructed to simultaneously enforce disparate impact and disparate treatment,
@@ -202,7 +202,7 @@ def _get_hoeff_sc(dataset, mp, enforce_robustness=False):
 
 def _get_ttest_sc(dataset, mp, enforce_robustness=False):
 	"""
-	Get a ttest SC model and return a prediction function. 
+	Get a ttest SC model and return a prediction function.
 
 	Args:
 		dataset: A dataset object
@@ -338,7 +338,7 @@ def eval_ttest_sc(dataset, mp):
 	return _evaluate_model(dataset, trainf, mp)
 
 def eval_ttest_sc_robust(dataset, mp):
-	""" 
+	"""
 	train a robust t-test model and return a prediction function.
 	"""
 	trainf = lambda dataset, mp: _get_ttest_sc(dataset, mp, enforce_robustness=True)
@@ -376,12 +376,12 @@ def eval_fair_robust(dataset, mp):
 def load_dataset(tparams, seed):
 	"""
 		load a dataset based on the parameters in tparams.
-	
+
 		args:
 			tparams: a dictionary of parameters
 			seed: random seed
-	
-		returns:	
+
+		returns:
 			dataset: a dataset object
 	"""
 	dset_args = {
@@ -449,18 +449,19 @@ if __name__ == '__main__':
 		print('                               as \'%r\'.' % get_parser().parse(constraints[0]))
 
 
-		smla_names = ['SC', 'QSC', 'SRC', 'QSRC']
+		# smla_names = ['SC', 'QSC', 'SRC', 'QSRC']
+		smla_names = ["QSRC"]
 		model_evaluators = {
-			'SC'           : eval_hoeff_sc,
-			'QSC'          : eval_ttest_sc,
-			'SRC'          : eval_hoeff_sc_robust,
+			# 'SC'           : eval_hoeff_sc,
+			# 'QSC'          : eval_ttest_sc,
+			# 'SRC'          : eval_hoeff_sc_robust,
 			'QSRC'         : eval_ttest_sc_robust,
 			# 'SGD'          : eval_sgd,
 			# 'LinSVC'       : eval_linsvc,
 			# 'SVC'          : eval_svc
-			'FairConst'    : eval_fair_constraints,
-			'FairlearnSVC' : eval_fairlearn,
-			'FairRobust'   : eval_fair_robust
+			# 'FairConst'    : eval_fair_constraints,
+			# 'FairlearnSVC' : eval_fairlearn,
+			# 'FairRobust'   : eval_fair_robust
 		}
 
 		#    Store task parameters:
@@ -511,8 +512,8 @@ if __name__ == '__main__':
 		# mparams['SGD'].update(loss=['hinge','log','perceptron'], penalty='l2', fit_intercept=False)
 		# mparams['SVC'].update(kernel=['rbf'], gamma=2, C=1)
 		# mparams['LinSVC'].update(loss=['hinge'], penalty='l2', fit_intercept=False)
-		mparams['FairConst'].update(cov=[0.01])
-		mparams['FairlearnSVC'].update(loss=['hinge'], penalty='l2', fit_intercept=False, fl_e=[0.01, 0.1])
+		#mparams['FairConst'].update(cov=[0.01])
+		#mparams['FairlearnSVC'].update(loss=['hinge'], penalty='l2', fit_intercept=False, fl_e=[0.01, 0.1])
 
 		#    Expand the parameter sets into a set of configurations
 		args_to_expand = parser._sweep_argnames + ['loss', 'kernel', 'cov', 'fl_e', 'n_train']

@@ -12,12 +12,12 @@ class BFGSOptimizer(SMLAOptimizer):
 		self.n_features = n_features
 		self.sigma0     = sigma0
 		self.restarts   = restarts
-	
+
 	@staticmethod
 	def cli_key():
 		return 'bfgs'
 
-	def minimize(self, evalf, n_iters):
+	def minimize(self, evalf, n_iters, **kwargs):
 		np.random.seed(np.floor(100000*(time()%10)).astype(int))
 		theta_opt = None
 		val_min = np.inf
@@ -31,6 +31,6 @@ class BFGSOptimizer(SMLAOptimizer):
 					theta_opt = theta.copy()
 					val_min = value
 		return theta_opt, {}
-	
+
 	def get_theta(self):
 		return None

@@ -22,7 +22,7 @@ class SeldonianClassifierBase:
 		self._term_values = term_values
 		self._cs_scale = cs_scale
 		self._seed = seed
-		# Set up the constraint manager to handle the input constraints 
+		# Set up the constraint manager to handle the input constraints
 		# keywords is the dictionary of contraint definition, given in line 375 (so this does not work as a standalone class)
 		self._cm       = ConstraintManager(constraint_strs, trivial_bounds={}, keywords=self.keywords, importance_samplers=importance_samplers, demographic_variable=demographic_variable, demographic_variable_values=demographic_variable_values, demographic_marginals=demographic_marginals, known_demographic_terms=known_demographic_terms, debug=False, timername='Constraints')
 		self._robust_loss = False if demographic_variable is None else robust_loss
@@ -36,7 +36,7 @@ class SeldonianClassifierBase:
 	@property
 	def n_constraints(self):
 		return self._cm.n_constraints
-	
+
 	def load_split(self, split, **extra):
 		all_data = { **split, **extra }
 		return { k:all_data[k] for k in self._cm.referenced_variables}
@@ -72,7 +72,7 @@ class SeldonianClassifierBase:
 	def get_optimizer(self, name, dataset, opt_params={}):
 		if name == 'linear-shatter':
 			assert self.model_type == 'linear', 'SeldonianClassifierBase.get_optimizer(): linear-shatter optimizer is only compatible with a linear model.'
-			return OPTIMIZERS[name](dataset.X, buffer_angle=5.0, has_intercept=False, use_chull=True)
+			return OPTIMIZERS[name](dataset._contents['X'], buffer_angle=5.0, has_intercept=False, use_chull=True)
 		elif name == 'cmaes':
 			return OPTIMIZERS[name](self.n_features, sigma0=0.01, n_restarts=50, seed=self._seed)
 		elif name == 'bfgs':
@@ -81,8 +81,8 @@ class SeldonianClassifierBase:
 			return OPTIMIZERS[name](self.n_features)
 		raise ValueError('SeldonianClassifierBase.get_optimizer(): Unknown optimizer \'%s\'.' % name)
 
-	
-	# Base models	
+
+	# Base models
 
 	def get_predictf(self, theta=None):
 		return partial(self.predict, theta=theta)
@@ -91,7 +91,7 @@ class SeldonianClassifierBase:
 		'''
 		makes model predictions, either with a linear model, a rbf, or a mlp
 
-		interestingly this uses, depending on the model type, also 
+		interestingly this uses, depending on the model type, also
 		self.model_params['hidden_layers'] or self.model_variables['X']
 
 		Arguments
@@ -103,7 +103,7 @@ class SeldonianClassifierBase:
 
 		Returns
 		-------
-		np.array 
+		np.array
 			The predictions
 		'''
 		theta = self.theta if (theta is None) else theta
@@ -155,7 +155,7 @@ class SeldonianClassifierBase:
 		Returns
 		------
 		float
-			upper bound (HCUB) 
+			upper bound (HCUB)
 		'''
 		# If demographic shift contains intervals, this will return the worst case error rate
 		return self._error_cm.upper_bound_constraints(None, mode='none', robustness_bounds=self._robustness_bounds, term_values=self._term_values)[0]
@@ -168,10 +168,10 @@ class SeldonianClassifierBase:
 			upper bound (HCUB) per constraint
 		'''
 		return self._cm.upper_bound_constraints(self.deltas, mode=self.ci_mode, interval_scaling=1.0, robustness_bounds=self._robustness_bounds, term_values=self._term_values)
-		
+
 	def predict_safety_test(self, data_ratio):
 		'''
-		
+
 		Parameters
 		----------
 		data_ratio: float
@@ -191,7 +191,7 @@ class SeldonianClassifierBase:
 
 		Returns
 		-------
-		float 
+		float
 
 		'''
 		self._tc.tic('eval_c_obj')
@@ -266,10 +266,10 @@ class SeldonianClassifierBase:
 
 		# Store any variables that will be required by the model
 		self._store_model_variables(dataset)
-		
+
 		# Compute number of samples of g(theta) for the candidate and safety sets
 		# Note: This assumes that the number of samples used to estimate g(theta)
-		#       doesn't depend on theta itself.  
+		#       doesn't depend on theta itself.
 		data_ratio = dataset.n_safety/dataset.n_optimization # TODO this is where the split ratio is calculated - but what is n_safety and n_optimization?
 
 		# Get the optimizer and set the candidate selection function
@@ -281,7 +281,7 @@ class SeldonianClassifierBase:
 		self._tc.tic('minimize_c_obj')
 		self.theta,_ = opt.minimize(c_objective, n_iters, theta0=theta0)
 		self._tc.toc('minimize_c_obj')
-		
+
 		# print()
 		# self._tc.print_total_times()
 		# self._tc.print_avg_times()
@@ -314,8 +314,8 @@ class SeldonianClassifierBase:
 		Returns
 		------
 		dict
-			containt information whether algorithm can be accepted, 
-			confidence levels for the contraints, and safety thresholds 
+			containt information whether algorithm can be accepted,
+			confidence levels for the contraints, and safety thresholds
 		'''
 		ds_ratio = dataset.n_safety / dataset.n_optimization
 		meta   = {}
@@ -341,13 +341,13 @@ class SeldonianClassifierBase:
 				for cnum in range(self.n_constraints):
 					meta['co_%d_mean' % cnum] = np.nan
 			else:
-				meta['loss_%s' % name] = self._error(predictf, split['X'], split['Y'])	
-				data = self.load_split(split, Yp=Yp)	
+				meta['loss_%s' % name] = self._error(predictf, split['X'], split['Y'])
+				data = self.load_split(split, Yp=Yp)
 				self._cm.set_data(data)
 				values = self._cm.evaluate()
 				for cnum, value in enumerate(values):
 					meta['co_%d_mean' % cnum] = value
-		
+
 		# Record SMLA-specific values or add baseline defaults
 		if meta['is_seldonian']:
 			self.set_cm_data(predictf, splits['safety'])
@@ -389,7 +389,7 @@ class SeldonianClassifier(SeldonianClassifierBase):
 
 class SeldonianMCClassifier(SeldonianClassifierBase):
 	'''
-	this seems to me for multiclass classification, but it wasnt talked about in the paper so we can probably ignore this 
+	this seems to me for multiclass classification, but it wasnt talked about in the paper so we can probably ignore this
 	'''
 	def __init__(self, epsilons, deltas, shape_error=False, verbose=False, model_type='linear', n_classes=2, model_params={}, loss_weights=None, robustness_bounds={}, term_values={}):
 		self.n_classes = n_classes
@@ -422,4 +422,3 @@ class SeldonianMCClassifier(SeldonianClassifierBase):
 	def n_features(self):
 		if self.model_type == 'linear':
 			return self.dataset.n_features * self.n_classes
-			

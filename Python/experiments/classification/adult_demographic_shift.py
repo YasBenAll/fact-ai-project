@@ -168,6 +168,23 @@ def _get_hoeff_sc(dataset, mp, enforce_robustness=False):
 	return model.predict, ~accept
 
 def _get_ttest_sc(dataset, mp, enforce_robustness=False):
+	"""
+	Train a Seldonian Classifier using t-test
+
+	Parameters
+	----------
+	dataset : Dataset
+		Training dataset
+	mp : dict
+		Parameters for the model
+
+	Returns
+	-------
+	predict : function
+		Prediction function
+	accept : bool
+		Whether the model was accepted
+	"""
 	model_params = {
 		'verbose'     : False,
 		'shape_error' : True,
@@ -192,6 +209,7 @@ def _get_ttest_sc(dataset, mp, enforce_robustness=False):
 	sensitive_attrs = ['S', 'R']
 	sensitive_attrs_to_cov_thresh = {'S':0.1, 
 									 'R':0.01}
+	# TODO: how does this use the fairness constraints?
 	w = fc_ut.train_model(X, Y, x_control, fc_lf._logistic_loss, apply_fairness_constraints, apply_accuracy_constraint, sep_constraint, sensitive_attrs, sensitive_attrs_to_cov_thresh, gamma)
 	model = SeldonianClassifier(mp['constraints'], mp['deltas'], **model_params)
 	accept = model.fit(dataset, n_iters=mp['n_iters'], optimizer_name=mp['optimizer'], theta0=w)
@@ -329,7 +347,7 @@ if __name__ == '__main__':
 		# Generate thje constraints and deltas		
 		population  = adult.load(R0='Black', R1='White')
 		if args.dshift_var.lower()[0] == 's':
-			constraints = make_constraints(args.definition, 'R', np.unique(population._R), args.e)
+			constraints = make_constraints(args.definition, 'R', np.unique(population._R), args.e) # np.unique(population._R) are all possible combinations of two races - in this case only black and white
 		if args.dshift_var.lower()[0] == 'r':
 			constraints = make_constraints(args.definition, 'S', np.unique(population._S), args.e)
 		deltas = [ args.d for _ in constraints ]

@@ -3,21 +3,23 @@ import argparse
 import pandas as pd
 import os
 
-results = os.listdir("results")
+directory = "results"
+
+results = os.listdir(directory)
 
 if __name__ == '__main__':
     for result in results:
-        if os.path.isdir(os.path.join("results", result)):
+        if os.path.isdir(os.path.join(directory, result)):
             # print(os.listdir(os.path.join("results", result)))
-            for filename in os.listdir(os.path.join("results", result)):
+            for filename in os.listdir(os.path.join(directory, result)):
                 if filename.endswith(".h5"):
                     if "incomplete" not in filename:
                         name = filename[:-3]
-                        filename = os.path.join("results", result, filename)
+                        filename = os.path.join(directory, result, filename)
                         print(filename)
 
                         params = pd.read_hdf(filename, key='task_parameters')
-                        results = pd.read_hdf(filename, key='results') # If this throws "KeyError: 'No object named results in the file'", your code didn't run properly
+                        results = pd.read_hdf(filename, key="results") # If this throws "KeyError: 'No object named results in the file'", your code didn't run properly
 
                         # extract acceptance rate
                         joint = results.merge(params, how="left", left_on="tid", right_index=True)
@@ -32,4 +34,4 @@ if __name__ == '__main__':
 
                         # merge
                         aggregated = NSF.merge(means, how="left", on=["name", "n_train"]).merge(ses, how="left", on=["name", "n_train"])
-                        aggregated.to_json(os.path.join("results/output",name) + ".json", indent=4, orient="records")
+                        aggregated.to_json(os.path.join(directory, "output", name) + ".json", indent=4, orient="records")

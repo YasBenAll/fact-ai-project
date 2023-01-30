@@ -25,9 +25,11 @@ if __name__ == '__main__':
 
                         # extract means and standard errors
                         solution_found = joint.loc[joint.original_nsf == False]
-                        means = solution_found[["name", "n_train", "original_acc", "antagonist_acc", "original_g", "antagonist_g"]].groupby(by=["name", "n_train"]).mean().add_suffix("_mean").reset_index()
-                        ses = solution_found[["name", "n_train", "original_acc", "antagonist_acc", "original_g", "antagonist_g"]].groupby(by=["name", "n_train"]).sem().add_suffix("_se").reset_index()
+                        solution_found["original_failed"] = solution_found["original_g"] > 0
+                        solution_found["antagonist_failed"] = solution_found["antagonist_g"] > 0
+                        means = solution_found[["name", "n_train", "original_acc", "antagonist_acc", "original_failed", "antagonist_failed"]].groupby(by=["name", "n_train"]).mean(numeric_only=False).add_suffix("_mean").reset_index()
+                        ses = solution_found[["name", "n_train", "original_acc", "antagonist_acc", "original_failed", "antagonist_failed"]].groupby(by=["name", "n_train"]).sem(numeric_only=False).add_suffix("_se").reset_index()
 
                         # merge
                         aggregated = NSF.merge(means, how="left", on=["name", "n_train"]).merge(ses, how="left", on=["name", "n_train"])
-                        aggregated.to_json(os.path.join("results",result,name) + ".json", indent=4, orient="records")
+                        aggregated.to_json(os.path.join("results/output",name) + ".json", indent=4, orient="records")

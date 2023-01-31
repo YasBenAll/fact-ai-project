@@ -34,4 +34,5 @@ if __name__ == '__main__':
 
                         # merge
                         aggregated = NSF.merge(means, how="left", on=["name", "n_train"]).merge(ses, how="left", on=["name", "n_train"])
+                        aggregated["interpolation_factor"] = params["interpolation_factor"]
                         aggregated.to_json(os.path.join(directory, "output", name) + ".json", indent=4, orient="records")

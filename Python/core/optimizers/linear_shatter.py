@@ -7,7 +7,7 @@ from core.optimizers import SMLAOptimizer
 class LinearShatterBFOptimizer(SMLAOptimizer):	
 
 	def __init__(self, X, buffer_angle=5.0, has_intercept=False, use_chull=True):
-		self._samplef = self.get_linear_samplef(X, buffer_angle, has_intercept, use_chull)
+		self._samplef = self.get_linear_samplef(X, buffer_angle, has_intercept, use_chull=False)
 
 	@staticmethod
 	def cli_key():

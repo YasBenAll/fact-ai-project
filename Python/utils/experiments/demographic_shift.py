@@ -6,6 +6,54 @@ from utils.rvs.utils import optimize_on_simplex
 from scipy import optimize
 
 def evaluate_antagonistic_demographic_shift(predictf, constraints, population, opts):
+    """
+    Evaluate the accuracy and constraint violation of a model after demographic shift.
+    The demographic shift is antagonistic, i.e. the model is trained on a population
+    with a certain demographic distribution, and then evaluated on a population with
+    a different demographic distribution. The demographic distribution is specified
+    by the demographic variable and the demographic marginals. The demographic
+    marginals are the marginal probabilities of the demographic variable. 
+
+    Parameters
+    ----------
+    predictf : function
+        A function that takes in a numpy array of features and returns a numpy array
+        of predictions. The function should be trained on the original population.
+    constraints : list of str
+        A list of constraints to evaluate. The constraints should be specified as
+        strings. The string should be a valid constraint. See the documentation for
+        more details.
+    population : Population
+        The population to evaluate the model on. The population should be the
+        population that the model was trained on.
+    opts : dict
+        A dictionary of options. The options should include the following
+        keys:
+            demographic_variable : Variable
+                The demographic variable to evaluate the model on.
+            demographic_marginals : numpy array
+                The demographic marginals to evaluate the model on. The demographic
+                marginals should be a numpy array of shape (m, 2), where m is the
+                number of values the demographic variable can take. The first column
+                of the array should be the minimum marginal probability of each
+                value, and the second column should be the maximum marginal
+                probability of each value. The marginal probabilities should be
+                between 0 and 1, and the sum of the marginal probabilities should
+                be 1.
+    n_samples : int, optional
+        The number of samples to use to evaluate the model. The default is 20.
+
+    Returns
+    -------
+    acc_orig : float
+        The accuracy of the model on the original population.
+    g_orig : float
+        The constraint violation of the model on the original population.
+    acc_shifted : float
+        The accuracy of the model on the shifted population.
+    g_shifted : float
+        The constraint violation of the model on the shifted population.
+    """
     assert len(constraints) == 1, ('evaluate_antagonistic_demographic_shift(): This function is only designed to evaluate shift under a single constraint. %d Constraints provided.' % len(constraints))
 
     data = population.all_sets()
@@ -26,6 +74,54 @@ def evaluate_antagonistic_demographic_shift(predictf, constraints, population, o
 
 
 def evaluate_random_demographic_shift(predictf, constraints, population, opts, n_samples=20):
+    """
+    Evaluate the accuracy and constraint violation of a model after demographic shift.
+    The demographic shift is antagonistic, i.e. the model is trained on a population
+    with a certain demographic distribution, and then evaluated on a population with
+    a different demographic distribution. The demographic distribution is specified
+    by the demographic variable and the demographic marginals. The demographic
+    marginals are the marginal probabilities of the demographic variable.
+
+    Parameters
+    ----------
+    predictf : function
+        A function that takes in a numpy array of features and returns a numpy array
+        of predictions. The function should be trained on the original population.
+    constraints : list of str
+        A list of constraints to evaluate. The constraints should be specified as
+        strings. The string should be a valid constraint. See the documentation for
+        more details.
+    population : Population
+        The population to evaluate the model on. The population should be the
+        population that the model was trained on.
+    opts : dict
+        A dictionary of options. The options should include the following
+        keys:
+            demographic_variable : Variable
+                The demographic variable to evaluate the model on.
+            demographic_marginals : numpy array
+                The demographic marginals to evaluate the model on. The demographic
+                marginals should be a numpy array of shape (m, 2), where m is the
+                number of values the demographic variable can take. The first column
+                of the array should be the minimum marginal probability of each
+                value, and the second column should be the maximum marginal
+                probability of each value. The marginal probabilities should be
+                between 0 and 1, and the sum of the marginal probabilities should
+                be 1.
+    n_samples : int, optional
+        The number of samples to use to evaluate the model. The default is 20.
+    
+    Returns
+    -------
+    acc_orig : float
+        The accuracy of the model on the original population.
+    g_orig : float
+        The constraint violation of the model on the original population.
+    acc_shifted : float
+        The accuracy of the model on the shifted population.
+    g_shifted : float
+        The constraint violation of the model on the shifted population.
+    """
     assert len(constraints) == 1, ('evaluate_random_demographic_shift(): This function is only designed to evaluate shift under a single constraint. %d Constraints provided.' % len(constraints))
 
     data = population.all_sets()

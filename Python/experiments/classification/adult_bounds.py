@@ -360,29 +360,8 @@ if __name__ == '__main__':
 
 		
 		smla_names = ['SC', 'QSC', 'SRC', 'QSRC']
-		# model_evaluators = {
-		# 	# 'SC'           : eval_hoeff_sc,
-		# 	# 'QSC'          : eval_ttest_sc,
-		# 	# 'SRC'          : eval_hoeff_sc_robust,
-		# 	# 'QSRC'         : eval_ttest_sc_robust,
-		# 	# # 'SGD'          : eval_sgd,
-		# 	# # 'LinSVC'       : eval_linsvc,
-		# 	# # 'SVC'          : eval_svc
-		# 	# 'FairConst'    : eval_fair_constraints,
-		# 	'FairlearnSVC' : eval_fairlearn
-		# 	# 'FairRobust'   : eval_fair_robust
-		# }
 		model_evaluators = {
-			'SC'           : eval_hoeff_sc,
-			'QSC'          : eval_ttest_sc,
-			'SRC'          : eval_hoeff_sc_robust,
 			'QSRC'         : eval_ttest_sc_robust,
-			# 'SGD'          : eval_sgd,
-			# 'LinSVC'       : eval_linsvc,
-			# 'SVC'          : eval_svc
-			'FairConst'    : eval_fair_constraints,
-			'FairlearnSVC' : eval_fairlearn,
-			'FairRobust'   : eval_fair_robust
 		}
 
 
@@ -436,8 +415,6 @@ if __name__ == '__main__':
 		# mparams['SGD'].update(loss=['hinge','log','perceptron'], penalty='l2', fit_intercept=False)
 		# mparams['SVC'].update(kernel=['rbf'], gamma=2, C=1)
 		# mparams['LinSVC'].update(loss=['hinge'], penalty='l2', fit_intercept=False)
-		mparams['FairConst'].update(cov=[0.01])
-		mparams['FairlearnSVC'].update(loss=['hinge'], penalty='l2', fit_intercept=False, fl_e=[0.01, 0.1])
 		
 		#    Expand the parameter sets into a set of configurations
 		args_to_expand = parser._sweep_argnames + ['loss', 'kernel', 'cov', 'fl_e', 'n_train']

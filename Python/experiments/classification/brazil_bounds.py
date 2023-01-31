@@ -18,16 +18,14 @@ import baselines.fair_classification.loss_funcs as fc_lf
 from baselines.fair_robust.unlabeled import UnlabeledFairRobust
 
 # SeldonianML imports
-from datasets     import adult as adult
+from datasets     import brazil_with_race as brazil
 from core.base.sc import SeldonianClassifier
 from utils.argsweep    import ArgumentSweeper
 from utils.rvs         import ConstraintManager, get_parser, get_classification_cm
 from utils.constraints import make_constraints
 from utils.experiments import launcher
-from utils.experiments import demographic_shift as ds # TODO this computes the bounds
+from utils.experiments import demographic_shift as ds
 import utils
-
-import sys
 
 
 # Supress sklearn FutureWarnings for SGD
@@ -42,21 +40,31 @@ warnings.simplefilter(action='ignore', category=ConvergenceWarning)
 # Wrapper for training each model and evaluating it under antagonistic resampling
 
 def _evaluate_model(dataset, trainf, mp):
-	cm = get_classification_cm(mp['constraints'])
+	"""
+	Train a model using the given training function and evaluate it under antagonistic resampling.
+
+	Args:
+		dataset: A dataset object
+		trainf: A function that takes a dataset and mp and returns a prediction function and a boolean indicating whether the model is non-saturating
+		mp: A dictionary of model parameters
+
+	Returns: 
+		[dict]: A dictionary containing the results of the evaluation
+	"""
+	# TODO - find out whether variable cm can be removed or not.
+	cm = get_classification_cm(mp['constraints']) 
 
 	# Resample the base dataset uniformly to obtain a training dataset
 	n_train = dataset.resample_n_train
 	n_candidate = np.floor(mp['r_cand_v_safe'] * n_train).astype(int)
 	n_safety   = n_train - n_candidate
 	dataset0 = dataset.resample(n_candidate=n_candidate, n_safety=n_safety, n_test=0)
-	dataset0._tparams = dataset._tparams
-	dataset0._seed = dataset._seed
 	t = time()
 	predictf, is_nsf = trainf(dataset0, mp)
 	t = time()-t
 	dshift_opts = {	k:mp[k] for k in ['demographic_variable', 'demographic_variable_values', 'demographic_marginals','known_demographic_terms']}
 	acc_orig, g_orig, acc_ant, g_ant = ds.evaluate_antagonistic_demographic_shift(predictf, mp['constraints'], dataset, dshift_opts)
-	
+
 	return {
 		'original_nsf'   : is_nsf,
 		'original_acc'   : acc_orig,
@@ -69,10 +77,19 @@ def _evaluate_model(dataset, trainf, mp):
 # Methods to train models
 
 def _get_fairlearn(dataset, mp):
+	"""
+	Train a fairlearn model and return a prediction function.
+	Args:
+		dataset: A dataset object
+		mp: A dictionary of model parameters
+
+	Returns: 
+		[predictf, is_nsf]: A prediction function and a boolean indicating whether a solution is found for the model (nsf = no solution found)
+	"""
 	# Train the model
 	# Load the dataset and convert it to a pandas dataframe
 	split = dataset.training_splits()
-	Xt, Yt, Tt = split['X'], split['Y'], split['R']
+	Xt, Yt, Tt = split['X'], split['Y'], split['S']
 	Xt = pd.DataFrame(Xt)
 	# Convert Y to be in {0,1} instead of {-1,1} for compatibility with fairlearn
 	Yt[Yt==-1] = 0
@@ -89,18 +106,10 @@ def _get_fairlearn(dataset, mp):
 		'equalopportunity'   : moments.EO,
 		'predictiveequality' : moments.EO }
 	cons = defs[mp['definition'].lower()]()
-	
+
 	# Train fairlearn using expgrad with a linear SVC
 	base_model = LinearSVC(loss=mp['loss'], penalty=mp['penalty'], fit_intercept=mp['fit_intercept'])
-	try:
-		results, hs = expgrad(Xt, Tt, Yt, base_model, cons=cons, eps=mp['fl_e'])
-	except ValueError as e:
-		s = '\nexpgrad failed.\n    shapes:\n            X: %r\n            Y: %r\n            T: %r\n   tparams: %r\n      seed:%d\n   mparams: %r\n' % (split['X'].shape, split['Y'].shape, split['S'].shape, dataset._tparams, dataset._seed, mp)
-		print(s)
-		sys.stdout.flush()
-		raise(e)
-
-
+	results, hs = expgrad(Xt, Tt, Yt, base_model, cons=cons, eps=mp['fl_e'])
 	def predictf(X, results=results):
 		Yp = np.array(np.round(results.best_classifier(X)))
 		try:
@@ -111,6 +120,16 @@ def _get_fairlearn(dataset, mp):
 	return predictf, False
 
 def _get_fair_constraints(dataset, mp):
+	"""
+	Train a FairConstraints model and return a prediction function.
+
+	Args:
+		dataset: A dataset object
+		mp: A dictionary of model parameters
+
+	Returns: 
+		tuple[int, bool]: A prediction function and a boolean indicating whether a solution is found for the model (nsf = no solution found)
+	"""
 	# FairConstraints is constructed to simultaneously enforce disparate impact and disparate treatment,
 	# thus the training process is the same regardless of the actual definition we're evaluating.
 	# Configure the constraints and weights
@@ -124,8 +143,9 @@ def _get_fair_constraints(dataset, mp):
 	X, Y, S, R = split['X'], split['Y'], split['S'], split['R']
 	x_control = {'S':S.astype(np.int64), 'R':R.astype(np.int64)}
 	sensitive_attrs = ['S', 'R']
+
 	sensitive_attrs_to_cov_thresh = {'S':0.1,
-									 'R':0.01}
+									 'R':{v:0.01 for v in dataset._unique_values['R']}}
 	w = fc_ut.train_model(X, Y, x_control, fc_lf._logistic_loss, apply_fairness_constraints, apply_accuracy_constraint, sep_constraint, sensitive_attrs, sensitive_attrs_to_cov_thresh, gamma)
 	def predictf(_X):
 		Yp = np.sign(np.dot(_X, w))
@@ -137,6 +157,17 @@ def _get_fair_constraints(dataset, mp):
 	return predictf, False
 
 def _get_hoeff_sc(dataset, mp, enforce_robustness=False):
+	"""
+	Train a Hoeffding SC model and return a prediction function.
+
+	Args:
+		dataset: A dataset object
+		mp: A dictionary of model parameters
+		enforce_robustness: Whether to enforce robustness constraints
+
+	Returns:
+		tuple[int, bool]: A prediction function and a boolean indicating whether the found theta can be used to make predictions.
+	"""
 	model_params = {
 		'verbose'     : False,
 		'shape_error' : True,
@@ -145,7 +176,7 @@ def _get_hoeff_sc(dataset, mp, enforce_robustness=False):
 		'cs_scale'    : mp['cs_scale'],
 		'robust_loss' : False}
 	if enforce_robustness:
-		for k in ['demographic_variable', 'demographic_variable_values', 'demographic_marginals','known_demographic_terms' ,'robust_loss']:
+		for k in ['demographic_variable', 'demographic_variable_values', 'demographic_marginals','known_demographic_terms', 'robust_loss']:
 			model_params[k] = mp[k]
 
 	# Train SC using hoeffding's inequality
@@ -159,8 +190,10 @@ def _get_hoeff_sc(dataset, mp, enforce_robustness=False):
 	X, Y, S, R = split['X'], split['Y'], split['S'], split['R']
 	x_control = {'S':S.astype(np.int64), 'R':R.astype(np.int64)}
 	sensitive_attrs = ['S', 'R']
+
+
 	sensitive_attrs_to_cov_thresh = {'S':0.1,
-									 'R':0.01}
+									 'R':{v:0.01 for v in dataset._unique_values['R']}}
 	w = fc_ut.train_model(X, Y, x_control, fc_lf._logistic_loss, apply_fairness_constraints, apply_accuracy_constraint, sep_constraint, sensitive_attrs, sensitive_attrs_to_cov_thresh, gamma)
 
 	model = SeldonianClassifier(mp['constraints'], mp['deltas'], **model_params)
@@ -169,21 +202,15 @@ def _get_hoeff_sc(dataset, mp, enforce_robustness=False):
 
 def _get_ttest_sc(dataset, mp, enforce_robustness=False):
 	"""
-	Train a Seldonian Classifier using t-test
+	Get a ttest SC model and return a prediction function. 
 
-	Parameters
-	----------
-	dataset : Dataset
-		Training dataset
-	mp : dict
-		Parameters for the model
+	Args:
+		dataset: A dataset object
+		mp: A dictionary of model parameters
+		enforce_robustness: Whether to enforce robustness constraints
 
-	Returns
-	-------
-	predict : function
-		Prediction function
-	accept : bool
-		Whether the model was accepted
+	Returns:
+		tuple[float, bool]: A prediction function and a boolean indicating whether the found theta can be used to make predictions.
 	"""
 	model_params = {
 		'verbose'     : False,
@@ -208,14 +235,17 @@ def _get_ttest_sc(dataset, mp, enforce_robustness=False):
 	x_control = {'S':S.astype(np.int64), 'R':R.astype(np.int64)}
 	sensitive_attrs = ['S', 'R']
 	sensitive_attrs_to_cov_thresh = {'S':0.1,
-									 'R':0.01}
-	# TODO: how does this use the fairness constraints?
+									 'R':{v:0.01 for v in dataset._unique_values['R']}}
 	w = fc_ut.train_model(X, Y, x_control, fc_lf._logistic_loss, apply_fairness_constraints, apply_accuracy_constraint, sep_constraint, sensitive_attrs, sensitive_attrs_to_cov_thresh, gamma)
+
 	model = SeldonianClassifier(mp['constraints'], mp['deltas'], **model_params)
 	accept = model.fit(dataset, n_iters=mp['n_iters'], optimizer_name=mp['optimizer'], theta0=w)
 	return model.predict, ~accept
 
 def _get_sgd(dataset, mp):
+	"""
+	Train a SGD model.
+	"""
 	split = dataset.training_splits()
 	Xt, Yt = split['X'], split['Y']
 	if mp['loss']=='log':
@@ -226,6 +256,9 @@ def _get_sgd(dataset, mp):
 	return model.predict, False
 
 def _get_svc(dataset, mp):
+	"""
+	Train a SVC model.
+	"""
 	split = dataset.training_splits()
 	Xt, Yt = split['X'], split['Y']
 	model = SVC(gamma=mp['gamma'], C=mp['C'], kernel=mp['kernel'])
@@ -233,6 +266,16 @@ def _get_svc(dataset, mp):
 	return model.predict, False
 
 def _get_linsvc(dataset, mp):
+	"""
+	Train a linear SVC model.
+
+	args:
+		dataset: dataset object
+		mp: model parameters
+
+	returns:
+		[float, bool]: a prediction function and a boolean indicating whether the model is robust.
+	"""
 	split = dataset.training_splits()
 	Xt, Yt = split['X'], split['Y']
 	model = LinearSVC(loss=mp['loss'], penalty=mp['penalty'], fit_intercept=mp['fit_intercept'])
@@ -240,8 +283,17 @@ def _get_linsvc(dataset, mp):
 	return model.predict, False
 
 def _get_fair_robust(dataset, mp):
+	"""
+	Train a unlabeled fair robust model
+
+	args:
+		dataset: dataset object
+		mp: model parameters
+
+	return a prediction function and a boolean indicating whether nsf is true or not (nsf = no solution found)
+	"""
 	split = dataset.training_splits()
-	Xt, Yt, St = split['X'], split['Y'], split['R']
+	Xt, Yt, St = split['X'], split['Y'], split['S']
 	Yt = 1.0*(Yt == 1)
 	model = UnlabeledFairRobust()
 	model.fit(Xt, Yt, St)
@@ -250,40 +302,70 @@ def _get_fair_robust(dataset, mp):
 		return 1*(Yp==1) - 1*(Yp==0)
 	return predictf, False
 
-# Actual evaluation functions
+# Actual evaluation functions (necessary since functions are defined in a dictionary and cannot be passed as arguments)
 
 def eval_fairlearn(dataset, mp):
+	"""
+	Train a fairlearn model and return a prediction function.
+	"""
 	return _evaluate_model(dataset, _get_fairlearn, mp)
 
 def eval_fair_constraints(dataset, mp):
+	"""
+	Train a FairConstraints model and return a prediction function.
+	"""
 	return _evaluate_model(dataset, _get_fair_constraints, mp)
 
 def eval_hoeff_sc(dataset, mp):
+	"""
+	trains a hoeffding's inequality model and return a prediction function.
+	"""
 	trainf = lambda dataset, mp: _get_hoeff_sc(dataset, mp, enforce_robustness=False)
 	return _evaluate_model(dataset, trainf, mp)
 
 def eval_hoeff_sc_robust(dataset, mp):
+	"""
+	trains a robust hoeffding's inequality model and return a prediction function.
+	"""
 	trainf = lambda dataset, mp: _get_hoeff_sc(dataset, mp, enforce_robustness=True)
 	return _evaluate_model(dataset, trainf, mp)
 
 def eval_ttest_sc(dataset, mp):
+	"""
+	trains a t-test model and return a prediction function.
+	"""
 	trainf = lambda dataset, mp: _get_ttest_sc(dataset, mp, enforce_robustness=False)
 	return _evaluate_model(dataset, trainf, mp)
 
 def eval_ttest_sc_robust(dataset, mp):
+	""" 
+	train a robust t-test model and return a prediction function.
+	"""
 	trainf = lambda dataset, mp: _get_ttest_sc(dataset, mp, enforce_robustness=True)
 	return _evaluate_model(dataset, trainf, mp)
 
 def eval_sgd(dataset, mp):
+	"""
+	train a sgd model and return a prediction function.
+	"""
 	return _evaluate_model(dataset, _get_sgd, mp)
 
 def eval_svc(dataset, mp):
+	"""
+	train a svc model and return a prediction function.
+	"""
 	return _evaluate_model(dataset, _get_svc, mp)
 
 def eval_linsvc(dataset, mp):
+	"""
+	train a linear svc model and return a prediction function.
+	"""
 	return _evaluate_model(dataset, _get_linsvc, mp)
 
 def eval_fair_robust(dataset, mp):
+	"""
+	train a fair robust model and return a prediction function.
+	"""
 	return _evaluate_model(dataset, _get_fair_robust, mp)
 
 
@@ -292,21 +374,28 @@ def eval_fair_robust(dataset, mp):
 ######################
 
 def load_dataset(tparams, seed):
+	"""
+		load a dataset based on the parameters in tparams.
+	
+		args:
+			tparams: a dictionary of parameters
+			seed: random seed
+	
+		returns:	
+			dataset: a dataset object
+	"""
 	dset_args = {
-		'r_train'     : 1.0, 
+		'r_train'     : 1.0,
 		'include_intercept' : True,
-		'include_R'   : tparams['include_R'], 
-		'include_S'   : tparams['include_S'], 
+		'include_R'   : tparams['include_R'],
+		'include_S'   : tparams['include_S'],
 		'use_pct'     : 1.0,
 		'seed'        : seed,
-		'standardize' : tparams['standardize'],
-		'R0' : 'Black',
-		'R1' : 'White'
+		'gpa_cutoff'  : tparams['gpa_cutoff'],
+		'standardize' : tparams['standardize']
 	}
-	dataset = adult.load(**dset_args)	
+	dataset = brazil.load(**dset_args)
 	dataset.resample_n_train = tparams['n_train']
-	dataset._tparams = deepcopy(tparams)
-	dataset._seed = seed
 	return dataset
 
 
@@ -317,11 +406,12 @@ def load_dataset(tparams, seed):
 if __name__ == '__main__':
 
 	# Note: This script computes experiments for the cross product of all values given for the
-	#       sweepable arguments. 
+	#       sweepable arguments.
 	# Note: Sweepable arguments allow inputs of the form, <start>:<end>:<increment>, which are then
-	#       expanded into ranges via np.arange(<start>, <end>, <increment>). 
+	#       expanded into ranges via np.arange(<start>, <end>, <increment>).
 	with ArgumentSweeper() as parser:
 		parser.add_argument('base_path', type=str)
+		parser.add_argument('--gpa_cutoff', type=float, default=3.5,  help='Cutoff for defining "good" GPA.')
 		parser.add_argument('--include_R',  action='store_true',      help='Whether or not to include race as a predictive feature.')
 		parser.add_argument('--include_S',  action='store_true',      help='Whether or not to include sex as a predictive feature.')
 		parser.add_argument('--standardize',  action='store_true', help='Whether or not to standardize input features.')
@@ -339,15 +429,15 @@ if __name__ == '__main__':
 		parser.add_sweepable_argument('--model_type',     type=str, default='linear', nargs='*', help='Base model type to use for SMLAs.')
 		parser.add_argument('--fixed_dist',  action='store_true',      help='Fixed the distribution post-deployment (only works when dshift_var=race.')
 		parser.add_argument('--dshift_var', type=str,       default='race', help='Choice of variable to evaluate demographic shift for.')
-		parser.add_argument('--dshift_alpha', type=float,   default=0.1,    help='Width of intervals around true marginals representing valid demographic shifts.') # TODO this is the interpolation factor
+		parser.add_argument('--dshift_alpha', type=float,   default=0.0,    help='Width of intervals around true marginals representing valid demographic shifts.')
 		parser.add_argument('--cs_scale', type=float, default=1.0,  help='Scaling factor for predicted confidence intervals during candidate selection.')
 		args = parser.parse_args()
 		args_dict = dict(args.__dict__)
 
-		# Generate thje constraints and deltas		
-		population  = adult.load(R0='Black', R1='White')
+		# Generate the constraints and deltas
+		population  = brazil.load()
 		if args.dshift_var.lower()[0] == 's':
-			constraints = make_constraints(args.definition, 'R', np.unique(population._R), args.e) # np.unique(population._R) are all possible combinations of two races - in this case only black and white
+			constraints = make_constraints(args.definition, 'R', np.unique(population._R), args.e)
 		if args.dshift_var.lower()[0] == 'r':
 			constraints = make_constraints(args.definition, 'S', np.unique(population._S), args.e)
 		deltas = [ args.d for _ in constraints ]
@@ -358,37 +448,14 @@ if __name__ == '__main__':
 		print('   Interpreting constraint string \'%s\''  % constraints[0])
 		print('                               as \'%r\'.' % get_parser().parse(constraints[0]))
 
-		
+
 		smla_names = ['SC', 'QSC', 'SRC', 'QSRC']
-		# model_evaluators = {
-		# 	# 'SC'           : eval_hoeff_sc,
-		# 	# 'QSC'          : eval_ttest_sc,
-		# 	# 'SRC'          : eval_hoeff_sc_robust,
-		# 	# 'QSRC'         : eval_ttest_sc_robust,
-		# 	# # 'SGD'          : eval_sgd,
-		# 	# # 'LinSVC'       : eval_linsvc,
-		# 	# # 'SVC'          : eval_svc
-		# 	# 'FairConst'    : eval_fair_constraints,
-		# 	'FairlearnSVC' : eval_fairlearn
-		# 	# 'FairRobust'   : eval_fair_robust
-		# }
 		model_evaluators = {
-			'SC'           : eval_hoeff_sc,
-			'QSC'          : eval_ttest_sc,
-			'SRC'          : eval_hoeff_sc_robust,
-			'QSRC'         : eval_ttest_sc_robust,
-			# 'SGD'          : eval_sgd,
-			# 'LinSVC'       : eval_linsvc,
-			# 'SVC'          : eval_svc
-			'FairConst'    : eval_fair_constraints,
-			'FairlearnSVC' : eval_fairlearn,
-			'FairRobust'   : eval_fair_robust
+			'QSRC'         : eval_ttest_sc_robust
 		}
 
-
-
 		#    Store task parameters:
-		tparams = {k:args_dict[k] for k in ['n_jobs', 'base_path', 'r_train_v_test', 'include_R', 'include_S', 'standardize', 'n_train']}
+		tparams = {k:args_dict[k] for k in ['n_jobs', 'base_path', 'r_train_v_test', 'include_R', 'include_S', 'gpa_cutoff', 'standardize', 'n_train']}
 
 		# Generate options for enforcing robustness constraints
 		if args.dshift_var.lower() == 'sex':
@@ -401,16 +468,15 @@ if __name__ == '__main__':
 			raise RuntimeError('This experiment does not support demographic shift for the variable \'%s\'' % args.dshift_var)
 		unique_D_values = np.unique(D_values)
 		Pr_D = np.array([ (D_values==d).mean() for d in unique_D_values ])
-		assert (args.dshift_alpha >= 0) and (args.dshift_alpha <= 1.0), 'Demographic shift alpha value must be between 0 and 1.'
 		if args.fixed_dist:
 			smla_dshift_opts = {
 				'demographic_variable'        : D,
 				'demographic_variable_values' : unique_D_values,
-				# 'demographic_marginals'       : np.array([0.25, 0.75]),
-				'demographic_marginals'       : np.array([0.15, 0.85]),
+				'demographic_marginals'       : np.array([0.3  , 0.6  , 0.05 , 0.048, 0.002]),
 				'known_demographic_terms'     : ds.get_population_conditionals(population.all_sets(), constraints, D)
 			}
 		else:
+			assert (args.dshift_alpha >= 0) and (args.dshift_alpha <= 1.0), 'Demographic shift alpha value must be between 0 and 1.'
 			smla_dshift_opts = {
 				'demographic_variable'        : D,
 				'demographic_variable_values' : unique_D_values,
@@ -433,19 +499,14 @@ if __name__ == '__main__':
 			mparams[name]['dshift_var']   = args.dshift_var
 			mparams[name]['r_cand_v_safe'] = args.r_cand_v_safe
 			mparams[name].update(smla_dshift_opts)
-		# mparams['SGD'].update(loss=['hinge','log','perceptron'], penalty='l2', fit_intercept=False)
-		# mparams['SVC'].update(kernel=['rbf'], gamma=2, C=1)
-		# mparams['LinSVC'].update(loss=['hinge'], penalty='l2', fit_intercept=False)
-		mparams['FairConst'].update(cov=[0.01])
-		mparams['FairlearnSVC'].update(loss=['hinge'], penalty='l2', fit_intercept=False, fl_e=[0.01, 0.1])
-		
+
 		#    Expand the parameter sets into a set of configurations
 		args_to_expand = parser._sweep_argnames + ['loss', 'kernel', 'cov', 'fl_e', 'n_train']
-		tparams, mparams = launcher.make_parameters(tparams, mparams, expand=args_to_expand)	
+
+		tparams, mparams = launcher.make_parameters(tparams, mparams, expand=args_to_expand)
 
 		print(ds.make_intervals(Pr_D, args.dshift_alpha, epsilon=1e-3)) # TODO I think this relates to the bounds
 		print(ds.make_intervals(Pr_D, args.dshift_alpha, epsilon=1e-3))
-
 
 		print()
 		# Create a results file and directory
@@ -453,29 +514,3 @@ if __name__ == '__main__':
 		print()
 		# Run the experiment
 		launcher.run(args.n_trials, save_path, model_evaluators, load_dataset, tparams, mparams, n_workers=args.n_jobs, seed=None)
-
-
-		# tp = tparams[-1]
-		# dataset = load_dataset(tp, 0)
-		# for i,mp in enumerate(mparams['FairlearnSVC']):
-		# 	print(f'mp[{i}]:')
-
-		# 	mp['disable_linprog'] = False
-		# 	results = model_evaluators['FairlearnSVC'](dataset, mp)
-		# 	klen = max([ len(k) for k in results.keys() ])
-		# 	print('   Disable linprog = False:')
-		# 	for key, value in results.items():
-		# 		print(f'      {k.rjust(klen)}: {value}')
-
-		# 	mp['disable_linprog'] = True
-		# 	results = model_evaluators['FairlearnSVC'](dataset, mp)
-		# 	klen = max([ len(k) for k in results.keys() ])
-		# 	print('Disable linprog = False:')
-		# 	for key, value in results.items():
-		# 		print(f'      {k.rjust(klen)}: {value}')
-
-		# for name, evalf in model_evaluators.items():
-		# 	print(name)
-		# 	mp = mparams[name][0]
-		# 	results = evalf(dataset, mp)
-		# 	print(results)

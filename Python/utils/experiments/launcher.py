@@ -606,6 +606,33 @@ def consolidate_results(n_workers, task_iterator, fname, result_locks, debug=Fal
 ########################
 
 def prepare_paths(dirname, tparams, mparams, smla_names, root='results', filename=None):
+    """
+    Prepare the paths needed to save results.
+
+    Parameters
+    ----------
+    dirname : str
+        The name of the directory to save results in.
+    tparams : dict
+        The task parameters.
+    mparams : dict
+        The model parameters.
+    smla_names : list of str
+        The names of the SMLA parameters.
+    root : str, optional
+        The root directory to save results in.
+    filename : str, optional
+        The name of the file to save results in.
+
+    Returns
+    ------- 
+    basedir : str
+        The path to the directory to save results in.
+    subdir : str
+        The path to the directory to save results in.
+    save_path : str
+        The path to the file to save results in.
+    """
     # Prepare the paths needed to save results
     print('Preparing results directory.')
     is_new  = True
@@ -627,9 +654,12 @@ def prepare_paths(dirname, tparams, mparams, smla_names, root='results', filenam
 
     # Save the parameters to the hdf5 store
     with pd.HDFStore(save_path) as store:
-        store.append('task_parameters', pd.DataFrame(utils.stack_all_dicts(*tparams)))
+        task_params = pd.DataFrame(utils.stack_all_dicts(*tparams))
+        if "dshift_alpha" in mparams["QSRC"][0].keys():
+            task_params["interpolation_factor"] = mparams["QSRC"][0]["dshift_alpha"]
+        store.append('task_parameters', task_params)
         # for k,mps in mparams.items():
-        #     store.append('method_parameters/%s' % k, pd.DataFrame(utils.stack_all_dicts(*mps)))
+        # store.append('method_parameters', pd.DataFrame(mparams))
         store.append('meta', pd.DataFrame({'smla_names':smla_names}))
 
     return save_path

@@ -31,7 +31,8 @@ if __name__ == '__main__':
                         solution_found["antagonist_failed"] = solution_found["antagonist_g"] > 0
                         means = solution_found[["name", "n_train", "original_acc", "antagonist_acc", "original_failed", "antagonist_failed"]].groupby(by=["name", "n_train"]).mean(numeric_only=False).add_suffix("_mean").reset_index()
                         ses = solution_found[["name", "n_train", "original_acc", "antagonist_acc", "original_failed", "antagonist_failed"]].groupby(by=["name", "n_train"]).sem(numeric_only=False).add_suffix("_se").reset_index()
+                        std = solution_found[["name", "n_train", "original_acc", "antagonist_acc", "original_failed", "antagonist_failed"]].groupby(by=["name", "n_train"]).std(numeric_only=False).add_suffix("_std").reset_index()
 
                         # merge
-                        aggregated = NSF.merge(means, how="left", on=["name", "n_train"]).merge(ses, how="left", on=["name", "n_train"])
-                        aggregated.to_json(os.path.join(directory, "output", name) + ".json", indent=4, orient="records")
+                        aggregated = NSF.merge(means, how="left", on=["name", "n_train"]).merge(ses, how="left", on=["name", "n_train"]).merge(std, how="left", on=["name", "n_train"])
+                        aggregated.to_json(os.path.join("statistics", "data", name) + ".json", indent=4, orient="records")

@@ -18,6 +18,32 @@ import progressbar
 ##############################
 
 def run(n_trials, fname, evaluators, load_datasetf, tparams, mparams, n_workers, seed=None):
+    """
+    Run an experiment with the given parameters.
+
+    Parameters
+    ----------
+    n_trials : int
+        The number of trials to run.
+    fname : str
+        The name of the HDF5 file to store the results in.
+    evaluators : dict
+        A dictionary of evaluators, where the keys are the names of the methods and the values are the evaluators.
+    load_datasetf : function
+        A function that takes a task parameter dictionary and returns a dataset.
+    tparams : list of dict
+        A list of task parameter dictionaries.
+    mparams : dict
+        A dictionary of method parameter dictionaries, where the keys are the names of the methods and the values are the method parameter dictionaries.
+    n_workers : int
+        The number of workers to use.
+    seed : int, optional
+        The seed to use for the random number generator. If None, a random seed is used.
+
+    Returns
+    -------
+    ?
+    """
     n_workers = max(n_workers, 1)
     print('Computing %d trials.' % n_trials)
     print()
@@ -286,6 +312,30 @@ ExperimentManager.register('TaskIterator', TaskIterator, proxytype=IteratorProxy
 ##################################
 import sys
 def process_tasks(wid, tasks, n_trials, fname, evaluators, load_datasetf, all_tparams, all_mparams, result_lock):
+    """
+    Process a list of tasks.
+
+    Parameters
+    ----------
+    wid : int
+        The worker ID
+    tasks : list
+        A list of Task objects
+    n_trials : int
+        The number of trials to run
+    fname : str
+        The filename to save the results to
+    evaluators : dict
+        A dictionary of evaluator functions, keyed by method name
+    load_datasetf : function
+        A function that takes a dictionary of task parameters and returns a dataset
+    all_tparams : list
+        A list of dictionaries of task parameters
+    all_mparams : dict
+        A dictionary of lists of dictionaries of method parameters, keyed by method name
+    result_lock : multiprocessing.Lock
+        A lock to use for saving results
+    """
     ignore_signals()
     save_data = []
     prev_tid  = None
@@ -316,6 +366,36 @@ def process_tasks(wid, tasks, n_trials, fname, evaluators, load_datasetf, all_tp
 ########################################
 
 def _run_experiment(n_trials, fname, evaluators, load_datasetf, tparams, mparams, n_workers, seed=None, partials=None, task_iterator=None):
+    """
+    Run an experiment with the given parameters and evaluators.
+
+    Parameters
+    ----------
+    n_trials : int
+        The number of trials to run
+    fname : str
+        The filename to save the results to
+    evaluators : dict
+        A dictionary of evaluator functions, keyed by method name
+    load_datasetf : function
+        A function that takes a dictionary of task parameters and returns a dataset
+    tparams : list
+        A list of dictionaries of task parameters
+    mparams : dict
+        A dictionary of lists of dictionaries of method parameters, keyed by method name
+    n_workers : int
+        The number of worker processes to use
+    seed : int, optional
+        The random seed to use for the experiment
+    partials : dict, optional
+        A dictionary of partial functions, keyed by method name
+    task_iterator : TaskIterator, optional
+        A TaskIterator object to use for the experiment. If None, a new one will be created.
+
+    Returns
+    -------
+    ?
+    """
     if n_trials <= 0:
         return None
     manager = ExperimentManager()

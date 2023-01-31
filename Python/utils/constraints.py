@@ -10,8 +10,8 @@ def _disparate_impact(c, v1, v2, e, t=1e-20):
 
 CONSTRAINT_BUILDERS = {
 	'DemographicParity'     : (lambda c, v1, v2, e: '|E[Yp=1|%s=%d]-E[Yp=1|%s=%d]| - %f' % (c,v1,c,v2,e)),
-	# 'DisparateImpact'       : (lambda c, v1, v2, e: '-min(E[Yp=1|%s=%d]/E[Yp=1|%s=%d], E[Yp=1|%s=%d]/E[Yp=1|%s=%d]) - %f' % (c,v1,c,v2,c,v2,c,v1,e)),
-	'DisparateImpact' : _disparate_impact,
+	'DisparateImpact'       : (lambda c, v1, v2, e: '-min(E[Yp=1|%s=%d]/E[Yp=1|%s=%d], E[Yp=1|%s=%d]/E[Yp=1|%s=%d]) - %f' % (c,v1,c,v2,c,v2,c,v1,e)),
+	# 'DisparateImpact' : _disparate_impact,
 	'EqualizedOdds'         : (lambda c, v1, v2, e: '|E[Yp=1|Y=1,%s=%d]-E[Yp=1|Y=1,%s=%d]| + |E[Yp=1|Y=-1,%s=%d]-E[Yp=1|Y=-1,%s=%d]| - %f' % (c,v1,c,v2,c,v1,c,v2,e)),
 	'EqualOpportunity'      : (lambda c, v1, v2, e: '|E[Yp=-1|Y=1,%s=%d]-E[Yp=-1|Y=1,%s=%d]| - %f' % (c,v1,c,v2,e)),
 	'PredictiveEquality'    : (lambda c, v1, v2, e: '|E[Yp=1|Y=-1,%s=%d]-E[Yp=1|Y=-1,%s=%d]| - %f' % (c,v1,c,v2,e)),

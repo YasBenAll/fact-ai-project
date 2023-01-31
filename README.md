@@ -14,6 +14,7 @@ After cloning this repository, simply run:
 
 ```setup
 conda env create -f Python/env.yaml
+conda activate fact
 ```
 
 The datasets are already contained in this repository.

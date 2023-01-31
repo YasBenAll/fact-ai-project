@@ -3,7 +3,7 @@ import argparse
 import pandas as pd
 import os
 
-directory = "results"
+directory = "new_results"
 
 results = os.listdir(directory)
 

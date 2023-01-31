@@ -188,11 +188,21 @@ class SeldonianClassifierBase:
 
 	def candidate_objective(self, theta, split, data_ratio):
 		'''
+		Computes the upper bound on the error rate for the given model parameters
+
+		Arguments
+		---------
+		theta: np.array
+			model parameters
+		split: dict
+			dataset split
+		data_ratio: float
+			I believe its the ratio of data to use to have faster computation?
 
 		Returns
 		-------
-		float 
-
+		float
+			upper bound (HCUB) on the error rate
 		'''
 		self._tc.tic('eval_c_obj')
 		self._tc.tic('set_cm_data')

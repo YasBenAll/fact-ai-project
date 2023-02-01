@@ -35,5 +35,6 @@ if __name__ == '__main__':
                         counts = solution_found[["name", "n_train", "original_acc", "antagonist_acc", "original_failed", "antagonist_failed"]].groupby(by=["name", "n_train"]).count().add_suffix("_count").reset_index()
                         # merge
                         aggregated = NSF.merge(means, how="left", on=["name", "n_train"]).merge(ses, how="left", on=["name", "n_train"]).merge(std, how="left", on=["name", "n_train"]).merge(counts, how="left", on=["name", "n_train"])
-                        aggregated["interpolation_factor"] = params["interpolation_factor"]
-                        aggregated.to_json(os.path.join("results", name) + ".json", indent=4, orient="records")
+                        if "interpolation_factor" in params.columns:
+                            aggregated["interpolation_factor"] = params["interpolation_factor"]
+                        aggregated.to_json(os.path.join("results", "output", name) + ".json", indent=4, orient="records")

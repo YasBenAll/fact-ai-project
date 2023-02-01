@@ -21,10 +21,14 @@ The datasets are already contained in this repository.
 
 ## Training
 
-The experiments from the paper can be executed by running the provided file from the Python directory, as follows:
+The experiments from the paper can be executed by running the provided file from the `Python` directory, as follows:
 
 ```train
+# on Linux/Mac: 
 ./experiments/scripts/iclr_ds_experiments.sh
+
+# on Windows:
+experiments/scripts/iclr_ds_experiments.bat
 ```
 
 Hyperparameters and models are specified in this file.

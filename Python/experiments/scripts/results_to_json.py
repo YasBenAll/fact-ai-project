@@ -1,9 +1,8 @@
-import json
-import argparse
 import pandas as pd
 import os
 
-directory = "results_bounds"
+directory = "results"
+os.makedirs(os.path.join(directory, "output"), exist_ok=True)
 
 results = os.listdir(directory)
 

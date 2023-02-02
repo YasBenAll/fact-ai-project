@@ -3,7 +3,7 @@ import argparse
 import pandas as pd
 import os
 
-directory = "results"
+directory = "results_bounds"
 
 results = os.listdir(directory)
 
@@ -24,6 +24,8 @@ if __name__ == '__main__':
                         # extract acceptance rate
                         joint = results.merge(params, how="left", left_on="tid", right_index=True)
                         NSF = joint[["name", "n_train", "original_nsf"]].groupby(by=["name", "n_train"]).mean().reset_index()
+                        NSF_se = joint[["name", "n_train", "original_nsf"]].groupby(by=["name", "n_train"]).sem().reset_index()
+
 
                         # extract means and standard errors
                         solution_found = joint.loc[joint.original_nsf == False]
@@ -37,4 +39,5 @@ if __name__ == '__main__':
                         aggregated = NSF.merge(means, how="left", on=["name", "n_train"]).merge(ses, how="left", on=["name", "n_train"]).merge(std, how="left", on=["name", "n_train"]).merge(counts, how="left", on=["name", "n_train"])
                         if "interpolation_factor" in params.columns:
                             aggregated["interpolation_factor"] = params["interpolation_factor"]
-                        aggregated.to_json(os.path.join("results", "output", name) + ".json", indent=4, orient="records")
+                        aggregated["original_nsf_se"] = NSF_se["original_nsf"]
+                        aggregated.to_json(os.path.join(directory, "output", name) + ".json", indent=4, orient="records")

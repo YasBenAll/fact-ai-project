@@ -2,11 +2,10 @@
 
 This repository contains the code used for the paper [On the reproducibility of ”Fairness Guarantees under Demographic Shift”](https://arxiv.org/abs/2030.12345). It is largely similar to the original codebase of the ICLR 2022 paper [Fairness Guarantees under Demographic Shift](https://openreview.net/forum?id=wbPObLm6ueA), but contains the following contributions:
 
-- An env.yaml file containing the correct requirements for reproducing the experiments.
+- An env.yaml file containing the correct requirements for reproducing the experiments
 - Adjustments made to the code to run it without errors on all machines (Linux, Windows, and Mac)
-- Result aggregation and saving to json for ease of inspection
-
->📋  Optional: include a graphic explaining your approach/main result, bibtex entry, link to demos, blog posts and tutorials
+- Code to aggregate and save results to json, calculation of statistics and generation of latex tables
+- Additional experiments on different bound sizes and optimization methods
 
 ## Requirements
 
@@ -74,7 +73,7 @@ Again, the results can be extracted to json format by running
 python experiments/scripts/results_to_json.py
 ```
 
-and then, the plots shown in our paper can be created by running 
+and then, the plot shown in our paper can be created by running 
 
 ```plots
 python experiments/scripts/plot_bounds.py

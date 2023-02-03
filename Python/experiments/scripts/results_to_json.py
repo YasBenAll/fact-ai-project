@@ -25,6 +25,9 @@ if __name__ == '__main__':
                         joint = results.merge(params, how="left", left_on="tid", right_index=True)
                         NSF = joint[["name", "n_train", "original_nsf"]].groupby(by=["name", "n_train"]).mean().reset_index()
 
+                        # extract total runtimes
+                        runtimes = joint[["name", "n_train", "runtime"]].groupby(by=["name", "n_train"]).sum().reset_index()
+
                         # extract means and standard errors
                         solution_found = joint.loc[joint.original_nsf == False]
                         solution_found["original_failed"] = solution_found["original_g"] > 0
@@ -34,7 +37,7 @@ if __name__ == '__main__':
                         std = solution_found[["name", "n_train", "original_acc", "antagonist_acc", "original_failed", "antagonist_failed"]].groupby(by=["name", "n_train"]).std(numeric_only=False).add_suffix("_std").reset_index()
                         counts = solution_found[["name", "n_train", "original_acc", "antagonist_acc", "original_failed", "antagonist_failed"]].groupby(by=["name", "n_train"]).count().add_suffix("_count").reset_index()
                         # merge
-                        aggregated = NSF.merge(means, how="left", on=["name", "n_train"]).merge(ses, how="left", on=["name", "n_train"]).merge(std, how="left", on=["name", "n_train"]).merge(counts, how="left", on=["name", "n_train"])
+                        aggregated = NSF.merge(means, how="left", on=["name", "n_train"]).merge(ses, how="left", on=["name", "n_train"]).merge(std, how="left", on=["name", "n_train"]).merge(counts, how="left", on=["name", "n_train"]).merge(runtimes, how="left", on=["name", "n_train"])
                         if "interpolation_factor" in params.columns:
                             aggregated["interpolation_factor"] = params["interpolation_factor"]
                         aggregated.to_json(os.path.join("results", "output", name) + ".json", indent=4, orient="records")

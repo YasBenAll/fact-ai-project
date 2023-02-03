@@ -59,7 +59,7 @@ if __name__ == "__main__":
                     ).highlight_min(
                         props="font-weight:bold", subset=[("Fixed DS", "FR"), ("Unknown DS", "FR")]
                         ).to_latex(
-                            label=f"{fc}_{dataset}", caption=f"{FC_MAP[fc]} - {dataset} dataset", position="H", hrules=True, convert_css=True, multicol_align="c", position_float="centering") # header = ["NSF", "acc orig", "acc depl"]
+                            label=f"{fc}_{dataset}_bounds", caption=f"{FC_MAP[fc]} - {dataset} dataset", position="H", hrules=True, convert_css=True, multicol_align="c", position_float="centering") # header = ["NSF", "acc orig", "acc depl"]
             latex = latex.replace("\midrule", "\cmidrule(r){2-5} \cmidrule{6-9}")
             # latex = latex.replace("\\begin{table}[H]", "\\begin{table}[H]\n\\begin{threeparttable}")
             # latex = latex.replace("\end{table}", "\end{threeparttable}\n\end{table}")

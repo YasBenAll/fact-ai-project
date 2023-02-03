@@ -9,19 +9,34 @@ BASE_URL = os.path.join('datasets', 'brazil', 'brazil_with_race.npz')
 
 def load(gpa_cutoff=3.0, r_train=0.4, r_candidate=0.2, seed=None, include_intercept=True, use_pct=1.0, include_R=False, include_S=False, standardize=False):
 	"""
-	Load the Brazilian dataset with   """
+	Load the Brazilian dataset from the UCI repository.
+	
+	Parameters:
+		gpa_cutoff (float): The GPA cutoff for admission to a Brazilian university.
+		r_train (float): The proportion of the dataset to use for training.
+		r_candidate (float): The proportion of the training set to use for candidate training.
+		seed (int): The random seed to use.
+		include_intercept (bool): Whether to include an intercept term in the dataset.
+		use_pct (float): The proportion of the dataset to use.
+		include_R (bool): Whether to include the protected attribute in the dataset.
+		include_S (bool): Whether to include the sensitive attribute in the dataset.
+		standardize (bool): Whether to standardize the dataset.
+			
+		Returns:
+		A ClassificationDataset object containing the dataset.
+			"""
 	meta_information = {
 		'standardized' 		: standardize,
-		'include_R'    		: include_R,
+		'include_R'    		: include_R, 
 		'include_S'    		: include_S,
 		'include_intercept' : include_intercept,
-		'gpa_cutoff'		: gpa_cutoff
+		'gpa_cutoff'		: gpa_cutoff # 3.0 is the cutoff for admission to a Brazilian university
 	}
 
 	random = np.random.RandomState(seed)
 	
 	D = np.load(BASE_URL)
-	X = D['X']
+	X = D['X'] 
 	Y = (D['Y']>=gpa_cutoff).astype(float) - (D['Y']<gpa_cutoff).astype(float)
 	R = D['R']
 	S = D['S']

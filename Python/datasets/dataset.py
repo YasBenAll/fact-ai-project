@@ -17,7 +17,7 @@ class Dataset(object):
 			meta_information: dictionary of meta information
 			**contents: dictionary of data
 		
-		Output: 
+		Returns: 
 			Dataset object: return Dataset object with the data and splits.
 
 		"""
@@ -70,7 +70,7 @@ class Dataset(object):
 		"""
 	Get the data for a given split.
 
-	Args:
+	Parameters:
 		index_key: index of the key for the split. Available indices are: 'all', 'train', 'test', 'opt', 'saf'
 		keys: list of keys for the data to return. If None, then return all data.
 
@@ -111,7 +111,7 @@ class ClassificationDataset(Dataset):
 			meta_information: dictionary of meta information.
 			**contents: dictionary of data
 		
-		Output:
+		Returns:
 			ClassificationDataset object: return ClassificationDataset object with the data and splits.
 			"""
 		assert 'X' in contents.keys(), 'ClassificationDataset.__init__(): Feature matrix \'X\' is not defined.'
@@ -129,7 +129,6 @@ class ClassificationDataset(Dataset):
 
 	def resample(self, n_candidate=None, n_safety=None, n_test=None, probf=None):
 		"""
-		
 		Resample the data for the splits.
 		
 		Parameters:
@@ -166,7 +165,7 @@ class RLDataset(object):
 		"""
 		This class is used to store the data for reinforcement learning.
 
-		args:
+		Parameters:
 			S: state
 			A: action
 			R: reward
@@ -182,7 +181,8 @@ class RLDataset(object):
 			seed: random seed
 			Rc_func: reward correction function
 		
-		output: RLDataset object. This object contains the data for reinforcement learning.
+		Returns: 
+			RLDataset object. This object contains the data for reinforcement learning.
 		"""
 		n_train   = n_candidate + n_safety
 		n_samples = n_train + n_test
@@ -252,12 +252,14 @@ class RLDataset(object):
 	def _get_splits(self, index_key, t=None, corrected_R=True):
 		"""
 		Return the splits for the given index key. This function returns the splits
-		args:
+
+		Parameters:
 			index_key: key for the split
 			t: time step
 			corrected_R: whether to use the corrected reward
 
-		output: S, A, R, T, P. S is the state, A is the action, R is the reward, T is the terminal, P is the probability.
+		Returns: 
+			S, A, R, T, P. S is the state, A is the action, R is the reward, T is the terminal, P is the probability.
 		
 		"""
 		if not(t is None):
@@ -269,14 +271,15 @@ class RLDataset(object):
 	def _get_splits_by_type(self, index_key, truncate=True, reorder=False, seed=None, corrected_R=True):
 		"""
 		Return the splits for the given index key. This function returns the splits for T=0 and T=1 separately.
-		args:
+		Parameters:
 			index_key: key for the split
 			truncate: whether to truncate the splits to the same length
 			reorder: whether to reorder the splits
 			seed: random seed
 			corrected_R: whether to use the corrected reward
 
-		output: S0, A0, R0, T0, P0, S1, A1, R1, T1, P1. S0 is the state for T=0, A0 is the action for T=0, R0 is the reward for T=0, T0 is the terminal for T=0, P0 is the probability for T=0. S1 is the state for T=1, A1 is the action for T=1, R1 is the reward for T=1, T1 is the terminal for T=1, P1 is the probability for T=1.
+		Returns: 
+			S0, A0, R0, T0, P0, S1, A1, R1, T1, P1. 
 		
 		"""
 		S0, A0, R0, _ = self._get_splits(index_key, t=0, corrected_R=corrected_R)
@@ -354,6 +357,7 @@ class RLDataset(object):
 class BanditDataset(RLDataset):
 	def __init__(self, S, A, R, n_actions, n_candidate, n_safety, n_test, min_reward, max_reward, seed=None, P=None, T=None, Rc_func=(lambda s,a,r,t: r)):
 		"""Initialize a dataset for a bandit problem. This is a special case of the RLDataset class. 
+
 		Parameters:
 			S: State vector. This is a 2D array of shape (n_samples, n_features).
 			A: Action vector. This is a 1D array of shape (n_samples,).
@@ -369,11 +373,10 @@ class BanditDataset(RLDataset):
 			T: Terminal vector. This is a 1D array of shape (n_samples,). If not provided, it is assumed that all samples are non-terminal.
 			Rc_func: Reward correction function. This is a function that takes as input the state, action, reward, and terminal vectors and returns the corrected reward vector.
 			
-			Example:
-				def Rc_func(S,A,R,T):
-					return R + 0.1 * np.random.randn(len(R))
-			
-			output: Corrected reward vector. This is a 1D array of shape (n_samples,). """
+				
+			Returns: 
+			Corrected reward vector. This is a 1D array of shape (n_samples,).
+			 """
 
 		S = S[:,None,:] # Convert S into a sequence of length-1 trajectories
 		A = A[:,None]
@@ -395,7 +398,9 @@ class BanditDataset(RLDataset):
 		"""Trains a Gaussian process to predict the reference probabilities.
 		Parameters:
 			use_pct: Percentage of data to use for training.
-		output: None."""
+		Returns:
+			None.
+			"""
 		kernel = 1.0 * RBF(1.0)
 		self._proba_gp = GaussianProcessClassifier(kernel) 
 		X = np.hstack((self._S[:,0,:],self._T[:,None]))
@@ -418,7 +423,8 @@ class BanditDataset(RLDataset):
 			use_pct: Percentage of data to use for training.
 			output: None.
 		
-		output: None."""
+		Returns: 
+			None"""
 		Y = np.zeros(len(self._R))
 		for i,r in enumerate(self._R):
 			Y[i] = np.where(r==returns)[0]
@@ -442,7 +448,8 @@ class BanditDataset(RLDataset):
 			corrected_R: If True, the corrected reward vector is returned.
 			output: S, A, R, T, P arrays.
 			
-		output: S, A, R, T, P arrays."""
+		Returns: 
+			S, A, R, T, P arrays."""
 		if not(t is None):
 			index_key += ('_%d' % t)
 		inds = self._inds[index_key]
@@ -485,7 +492,8 @@ class BanditDataset(RLDataset):
 				A: Current action.
 				T: Current time.
 					
-			output: Next state, action, reward, time, and probability of success."""
+			Returns: 
+				Next state, action, reward, time, and probability of success."""
 			if S.ndim == 1:
 				# If the state is a single vector, then we need to reshape it
 				X = np.hstack((S[None,:],np.array([[T]])))

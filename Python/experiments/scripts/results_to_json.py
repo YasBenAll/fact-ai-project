@@ -2,12 +2,13 @@ import pandas as pd
 import os
 
 directory = "results"
+bounds = False
 os.makedirs(os.path.join(directory, "output"), exist_ok=True)
 
 results = os.listdir(directory)
 
 if __name__ == '__main__':
-    for result in results:
+    for i, result in enumerate(results):
         if os.path.isdir(os.path.join(directory, result)):
             # print(os.listdir(os.path.join("results", result)))
             for filename in os.listdir(os.path.join(directory, result)):
@@ -26,6 +27,9 @@ if __name__ == '__main__':
                         NSF_se = joint[["name", "n_train", "original_nsf"]].groupby(by=["name", "n_train"]).sem().reset_index()
 
 
+                        # extract total runtimes
+                        runtimes = joint[["name", "n_train", "runtime"]].groupby(by=["name", "n_train"]).sum().reset_index()
+
                         # extract means and standard errors
                         solution_found = joint.loc[joint.original_nsf == False]
                         solution_found["original_failed"] = solution_found["original_g"] > 0
@@ -35,8 +39,11 @@ if __name__ == '__main__':
                         std = solution_found[["name", "n_train", "original_acc", "antagonist_acc", "original_failed", "antagonist_failed"]].groupby(by=["name", "n_train"]).std(numeric_only=False).add_suffix("_std").reset_index()
                         counts = solution_found[["name", "n_train", "original_acc", "antagonist_acc", "original_failed", "antagonist_failed"]].groupby(by=["name", "n_train"]).count().add_suffix("_count").reset_index()
                         # merge
-                        aggregated = NSF.merge(means, how="left", on=["name", "n_train"]).merge(ses, how="left", on=["name", "n_train"]).merge(std, how="left", on=["name", "n_train"]).merge(counts, how="left", on=["name", "n_train"])
+                        aggregated = NSF.merge(means, how="left", on=["name", "n_train"]).merge(ses, how="left", on=["name", "n_train"]).merge(std, how="left", on=["name", "n_train"]).merge(counts, how="left", on=["name", "n_train"]).merge(runtimes, how="left", on=["name", "n_train"])
                         if "interpolation_factor" in params.columns:
                             aggregated["interpolation_factor"] = params["interpolation_factor"]
+                        fill = ""
+                        if bounds:
+                            fill = str(i).zfill(2)
                         aggregated["original_nsf_se"] = NSF_se["original_nsf"]
-                        aggregated.to_json(os.path.join(directory, "output", name) + ".json", indent=4, orient="records")
+                        aggregated.to_json(os.path.join(directory, "output", name + fill) + ".json", indent=4, orient="records")

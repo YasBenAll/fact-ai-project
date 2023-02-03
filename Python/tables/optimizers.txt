@@ -1,0 +1,60 @@
+\begin{table}[H]
+\centering
+\caption{Disparate Impact - adult dataset}
+\label{di_adult_bounds}
+\begin{tabular}{lrrrrrrrr}
+\toprule
+ & \multicolumn{4}{c}{Fixed DS} & \multicolumn{4}{c}{Unknown DS} \\
+ & NSF & Acc & FR & Delta Acc & NSF & Acc & FR & Delta Acc \\
+\cmidrule(r){2-5} \cmidrule{6-9}
+CMA-ES & 0.720 & \bfseries 0.750 & \bfseries 0.000 & 0.074 & 0.400 & \bfseries 0.750 & \bfseries 0.000 & 0.167 \\
+BFGS & 0.440 & 0.724 & \bfseries 0.000 & 0.073 & 0.600 & 0.725 & \bfseries 0.000 & 0.210 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Demographic Parity - adult dataset}
+\label{dp_adult_bounds}
+\begin{tabular}{lrrrrrrrr}
+\toprule
+ & \multicolumn{4}{c}{Fixed DS} & \multicolumn{4}{c}{Unknown DS} \\
+ & NSF & Acc & FR & Delta Acc & NSF & Acc & FR & Delta Acc \\
+\cmidrule(r){2-5} \cmidrule{6-9}
+CMA-ES & 0.480 & \bfseries 0.756 & \bfseries 0.000 & 0.020 & 0.000 & \bfseries 0.780 & \bfseries 0.000 & 0.020 \\
+BFGS & 0.240 & 0.731 & \bfseries 0.000 & 0.014 & 0.100 & 0.755 & \bfseries 0.000 & 0.016 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Disparate Impact - brazil dataset}
+\label{di_brazil_bounds}
+\begin{tabular}{lrrrrrrrr}
+\toprule
+ & \multicolumn{4}{c}{Fixed DS} & \multicolumn{4}{c}{Unknown DS} \\
+ & NSF & Acc & FR & Delta Acc & NSF & Acc & FR & Delta Acc \\
+\cmidrule(r){2-5} \cmidrule{6-9}
+CMA-ES & 0.600 & \bfseries 0.606 & \bfseries 0.000 & 0.130 & 0.450 & \bfseries 0.480 & \bfseries 0.000 & 0.030 \\
+BFGS & 0.440 & 0.596 & \bfseries 0.000 & 0.120 & 0.050 & 0.469 & \bfseries 0.000 & 0.019 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Demographic Parity - brazil dataset}
+\label{dp_brazil_bounds}
+\begin{tabular}{lrrrrrrrr}
+\toprule
+ & \multicolumn{4}{c}{Fixed DS} & \multicolumn{4}{c}{Unknown DS} \\
+ & NSF & Acc & FR & Delta Acc & NSF & Acc & FR & Delta Acc \\
+\cmidrule(r){2-5} \cmidrule{6-9}
+CMA-ES & 0.520 & \bfseries 0.643 & \bfseries 0.000 & 0.058 & 0.800 & \bfseries 0.628 & \bfseries 0.000 & n/a \\
+BFGS & 0.480 & 0.638 & \bfseries 0.000 & 0.079 & 0.600 & 0.613 & \bfseries 0.000 & 0.034 \\
+\bottomrule
+\end{tabular}
+\end{table}
+

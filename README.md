@@ -95,6 +95,14 @@ This experiment can be reproduced by running:
 experiments/scripts/optimizers.bat
 ```
 
+---
+**NOTE**
+
+If the experiments of the original paper have been executed and the results are saved, the commands
+in the ```optimizer``` script with the ```--optimizer cmaes``` argument may be removed.
+
+---
+
 Again, the results can be extracted to json format by running
 
 ```extract

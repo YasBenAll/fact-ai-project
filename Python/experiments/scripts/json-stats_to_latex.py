@@ -103,11 +103,14 @@ def get_footnote(fixed_stats, antag_stats):
 
 if __name__ == "__main__":
 
+    os.makedirs("tables", exist_ok=True)
+
     # Read all json files in the output folder
     results = {}
     for file in os.listdir(path):
         results[file[:-5]]=pd.read_json(os.path.join(path,file), orient="records")
-
+    
+    all_tables = ""
 
     for dataset in ["adult", "brazil"]:
         for fc in ["di", "dp", "eodds", "eopp", "pe"]:
@@ -134,6 +137,12 @@ if __name__ == "__main__":
             latex = latex.replace("\end{table}", "\end{threeparttable}\n\end{table}")
             footnote = get_footnote(fixed_stats, antag_stats)
             latex = latex.replace("\end{threeparttable}", footnote + "\n\end{threeparttable}")
-            print(latex)
-            print()
+
+            all_tables += latex
+            all_tables += "\n"
+            
+
+    text_file = open("tables/reproduction.txt", "w")
+    text_file.write(all_tables)
+    text_file.close()
 

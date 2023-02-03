@@ -35,10 +35,15 @@ def aggragate_table(cma, bfgs):
     return df_new
 
 if __name__ == "__main__":
+    
+    os.makedirs("tables", exist_ok=True)
+
     # Read all json files in the output folder
     results = {}
     for file in os.listdir(PATH):
         results[file[5:-5]]=pd.read_json(os.path.join(PATH, file), orient="records")
+
+    all_tables = ""
 
     # Extract data and generate tables
     for dataset in ["adult", "brazil"]:
@@ -63,8 +68,11 @@ if __name__ == "__main__":
                         ).to_latex(
                             label=f"{fc}_{dataset}_bounds", caption=f"{FC_MAP[fc]} - {dataset} dataset", position="H", hrules=True, convert_css=True, multicol_align="c", position_float="centering") # header = ["NSF", "acc orig", "acc depl"]
             latex = latex.replace("\midrule", "\cmidrule(r){2-5} \cmidrule{6-9}")
-            # latex = latex.replace("\\begin{table}[H]", "\\begin{table}[H]\n\\begin{threeparttable}")
-            # latex = latex.replace("\end{table}", "\end{threeparttable}\n\end{table}")
-            # footnote = get_footnote(fixed_stats, antag_stats)
-            # latex = latex.replace("\end{threeparttable}", footnote + "\n\end{threeparttable}")
-            print(latex, "\n")
+
+            all_tables += latex
+            all_tables += "\n"
+            
+
+    text_file = open("tables/optimizers.txt", "w")
+    text_file.write(all_tables)
+    text_file.close()

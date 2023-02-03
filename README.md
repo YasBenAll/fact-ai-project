@@ -16,7 +16,7 @@ conda env create -f Python/env.yaml
 conda activate fact
 ```
 
-The datasets are already contained in this repository.
+The datasets are already contained in this repository, but can also be downloaded at [Adult](https://archive.ics.uci.edu/ml/datasets/adult) and [Brazil](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/O35FW8).
 
 ## Reproduction
 
@@ -52,6 +52,8 @@ The new figures will be saved to `Python/figures/*` by default. The tables, toge
 ```tables
 python experiments/scripts/json-stats_to_latex.py
 ```
+
+This will save the results as reported in the paper to `tables/reproduction.txt`
 
 ### Reproducing results beyond original paper
 
@@ -105,15 +107,7 @@ and then, the tables shown in our paper can be created by running
 python experiments/scripts/json-optimizer_to_latex.py
 ```
 
-## Results
-
-The model designed by the authors of the reproduced paper achieves the following performance on the given datasets:
-
-| Dataset name       | Accuracy without demographic shift  | Accuracy with demographic shift |
-| ------------------ | ----------------------------------- | ------------------------------- |
-| [Adult](https://archive.ics.uci.edu/ml/datasets/adult)            |                                   80.2% |                                78.8% |
-| [Brazil](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/O35FW8)           |                                   61.3% |                                62.4% |
-
+This will save the results as reported in the paper to `tables/optimizers.txt`
 
 
 ## License

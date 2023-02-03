@@ -1,6 +1,6 @@
 # On the reproducibility of ”Fairness Guarantees under Demographic Shift”
 
-This repository contains the code used for the paper [On the reproducibility of ”Fairness Guarantees under Demographic Shift”](https://arxiv.org/abs/2030.12345). It is largely similar to the original codebase of the ICLR 2022 paper [Fairness Guarantees under Demographic Shift](https://openreview.net/forum?id=wbPObLm6ueA), but contains the following contributions:
+This repository contains the code used for the paper [On the reproducibility of ”Fairness Guarantees under Demographic Shift”](https://openreview.net/forum?id=C-XeUGhFys). It is largely similar to the original codebase of the ICLR 2022 paper [Fairness Guarantees under Demographic Shift](https://openreview.net/forum?id=wbPObLm6ueA), but contains the following contributions:
 
 - An env.yaml file containing the correct requirements for reproducing the experiments
 - Adjustments made to the code to run it without errors on all machines (Linux, Windows, and Mac)

@@ -69,10 +69,10 @@ This experiment can be reproduced by running:
 experiments/scripts/bounds.bat
 ```
 
-Again, the results can be extracted to json format by running
+The results can be extracted to json format by running
 
 ```extract
-python experiments/scripts/results_to_json.py
+python experiments/scripts/results_to_json.py --directory results_bounds --bounds True
 ```
 
 and then, the plot shown in our paper can be created by running

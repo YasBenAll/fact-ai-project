@@ -1,21 +1,26 @@
 import pandas as pd
+import argparse
 import os
 
-directory = "results"
-bounds = False
-os.makedirs(os.path.join(directory, "output"), exist_ok=True)
-
-results = os.listdir(directory)
+parser = argparse.ArgumentParser()
 
 if __name__ == '__main__':
+
+    parser.add_argument("--directory", type=str, default="results")
+    parser.add_argument("--bounds", type=bool, default=False)
+    args = parser.parse_args()
+
+    os.makedirs(os.path.join(args.directory, "output"), exist_ok=True)
+    results = os.listdir(args.directory)
+
     for i, result in enumerate(results):
-        if os.path.isdir(os.path.join(directory, result)):
+        if os.path.isdir(os.path.join(args.directory, result)):
             # print(os.listdir(os.path.join("results", result)))
-            for filename in os.listdir(os.path.join(directory, result)):
+            for filename in os.listdir(os.path.join(args.directory, result)):
                 if filename.endswith(".h5"):
                     if "incomplete" not in filename:
                         name = filename[:-3]
-                        filename = os.path.join(directory, result, filename)
+                        filename = os.path.join(args.directory, result, filename)
                         print(filename)
 
                         params = pd.read_hdf(filename, key='task_parameters')
@@ -43,7 +48,7 @@ if __name__ == '__main__':
                         if "interpolation_factor" in params.columns:
                             aggregated["interpolation_factor"] = params["interpolation_factor"]
                         fill = ""
-                        if bounds:
+                        if args.bounds:
                             fill = str(i).zfill(2)
                         aggregated["original_nsf_se"] = NSF_se["original_nsf"]
-                        aggregated.to_json(os.path.join(directory, "output", name + fill) + ".json", indent=4, orient="records")
+                        aggregated.to_json(os.path.join(args.directory, "output", name + fill) + ".json", indent=4, orient="records")

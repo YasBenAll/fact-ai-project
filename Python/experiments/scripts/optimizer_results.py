@@ -19,18 +19,20 @@ MODEL_MAP = {
 }
 
 def aggragate_table(cma, bfgs):
-    cma_df = cma.loc[(cma["n_train"]==60000) & (cma["name"]=="QSRC")]
-    bfgs_df = bfgs.loc[(bfgs["n_train"]==60000) & (bfgs["name"]=="QSRC")]
-
-    cma_df["name"] = "cma"
-    bfgs_df["name"] = "bfgs"
+    cma_df = cma.loc[cma["name"]=="QSRC"]
+    bfgs_df = bfgs.loc[bfgs["name"]=="QSRC"]
+    cma_df["name"] = "CMA-ES"
+    bfgs_df["name"] = "BFGS"
 
     df = pd.concat([cma_df, bfgs_df])
-    df = df[["name", "original_nsf", "antagonist_acc_mean", "antagonist_failed_mean", "runtime"]].reset_index(drop=True)
-    df.set_index("name", inplace=True)
-    df.index.name = None
+    df_new = df.loc[df["n_train"] == 60000][["name", "original_nsf", "antagonist_acc_mean", "antagonist_failed_mean"]].reset_index(drop=True)
 
-    return df
+    df_new["Delta Acc"] = df_new["antagonist_acc_mean"].reset_index(drop=True) - df.loc[df["n_train"] == 10000]["antagonist_acc_mean"].reset_index(drop=True)
+
+    df_new.set_index("name", inplace=True)
+    df_new.index.name = None
+
+    return df_new
 
 if __name__ == "__main__":
     # Read all json files in the output folder

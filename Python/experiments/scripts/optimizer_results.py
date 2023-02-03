@@ -3,7 +3,6 @@ import os
 import numpy as np
 from scipy import stats
 import math
-
 import jinja2
 
 pd.options.mode.chained_assignment = None
@@ -51,16 +50,16 @@ if __name__ == "__main__":
             fixed_df = aggragate_table(fixed['cma'], fixed['bfgs'])
             antag_df = aggragate_table(antag['cma'], antag['bfgs'])
 
-            combined = pd.concat({"Fixed Bounds": fixed_df, "Unknown Bounds": antag_df}, axis=1)
+            combined = pd.concat({"Fixed DS": fixed_df, "Unknown DS": antag_df}, axis=1)
             combined.rename(columns={"original_nsf": "NSF", "antagonist_acc_mean": "Acc", "antagonist_failed_mean": "FR"}, inplace=True)
             latex = combined.style.format(
                 na_rep="n/a", precision=3
                 ).highlight_max(
-                    props="font-weight:bold", subset=[("Fixed Bounds", "Acc"), ("Unknown Bounds", "Acc")]
+                    props="font-weight:bold", subset=[("Fixed DS", "Acc"), ("Unknown DS", "Acc")]
                     ).highlight_min(
-                        props="font-weight:bold", subset=[("Fixed Bounds", "FR"), ("Unknown Bounds", "FR")]
+                        props="font-weight:bold", subset=[("Fixed DS", "FR"), ("Unknown DS", "FR")]
                         ).to_latex(
-                            label=f"{fc}_{dataset}", caption=f"{FC_MAP[fc]} - {dataset} dataset", position="H", hrules=True, convert_css=True, multicol_align="c") # header = ["NSF", "acc orig", "acc depl"]
+                            label=f"{fc}_{dataset}", caption=f"{FC_MAP[fc]} - {dataset} dataset", position="H", hrules=True, convert_css=True, multicol_align="c", position_float="centering") # header = ["NSF", "acc orig", "acc depl"]
             latex = latex.replace("\midrule", "\cmidrule(r){2-5} \cmidrule{6-9}")
             # latex = latex.replace("\\begin{table}[H]", "\\begin{table}[H]\n\\begin{threeparttable}")
             # latex = latex.replace("\end{table}", "\end{threeparttable}\n\end{table}")

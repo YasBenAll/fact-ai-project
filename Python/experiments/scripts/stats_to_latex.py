@@ -119,16 +119,16 @@ if __name__ == "__main__":
             antag_stats = get_stats(antag)
             fixed = aggragate_table(fixed)
             antag = aggragate_table(antag)
-            combined = pd.concat({"Fixed Bounds": fixed, "Unknown Bounds": antag}, axis=1)
+            combined = pd.concat({"Fixed DS": fixed, "Unknown DS": antag}, axis=1)
             combined.rename(columns={"original_nsf": "NSF", "antagonist_acc_mean": "Acc", "antagonist_failed_mean": "FR"}, inplace=True)
             latex = combined.style.format(
                 na_rep="n/a", precision=3
                 ).highlight_max(
-                    props="font-weight:bold", subset=[("Fixed Bounds", "Acc"), ("Unknown Bounds", "Acc")]
+                    props="font-weight:bold", subset=[("Fixed DS", "Acc"), ("Unknown DS", "Acc")]
                     ).highlight_min(
-                        props="font-weight:bold", subset=[("Fixed Bounds", "FR"), ("Unknown Bounds", "FR")]
+                        props="font-weight:bold", subset=[("Fixed DS", "FR"), ("Unknown DS", "FR")]
                         ).to_latex(
-                            label=f"{fc}_{dataset}", caption=f"{fc_map[fc]} - {dataset} dataset", position="H", hrules=True, convert_css=True, multicol_align="c") # header = ["NSF", "acc orig", "acc depl"]
+                            label=f"{fc}_{dataset}", caption=f"{fc_map[fc]} - {dataset} dataset", position="H", hrules=True, convert_css=True, multicol_align="c", position_float = "centering") # header = ["NSF", "acc orig", "acc depl"]
             latex = latex.replace("\midrule", "\cmidrule(r){2-5} \cmidrule{6-9}")
             latex = latex.replace("\\begin{table}[H]", "\\begin{table}[H]\n\\begin{threeparttable}")
             latex = latex.replace("\end{table}", "\end{threeparttable}\n\end{table}")

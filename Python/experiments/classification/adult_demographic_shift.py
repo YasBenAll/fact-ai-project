@@ -56,7 +56,7 @@ def _evaluate_model(dataset, trainf, mp):
 	t = time()-t
 	dshift_opts = {	k:mp[k] for k in ['demographic_variable', 'demographic_variable_values', 'demographic_marginals','known_demographic_terms']}
 	acc_orig, g_orig, acc_ant, g_ant = ds.evaluate_antagonistic_demographic_shift(predictf, mp['constraints'], dataset, dshift_opts)
-	
+
 	return {
 		'original_nsf'   : is_nsf,
 		'original_acc'   : acc_orig,
@@ -89,7 +89,7 @@ def _get_fairlearn(dataset, mp):
 		'equalopportunity'   : moments.EO,
 		'predictiveequality' : moments.EO }
 	cons = defs[mp['definition'].lower()]()
-	
+
 	# Train fairlearn using expgrad with a linear SVC
 	base_model = LinearSVC(loss=mp['loss'], penalty=mp['penalty'], fit_intercept=mp['fit_intercept'])
 	try:
@@ -293,17 +293,17 @@ def eval_fair_robust(dataset, mp):
 
 def load_dataset(tparams, seed):
 	dset_args = {
-		'r_train'     : 1.0, 
+		'r_train'     : 1.0,
 		'include_intercept' : True,
-		'include_R'   : tparams['include_R'], 
-		'include_S'   : tparams['include_S'], 
+		'include_R'   : tparams['include_R'],
+		'include_S'   : tparams['include_S'],
 		'use_pct'     : 1.0,
 		'seed'        : seed,
 		'standardize' : tparams['standardize'],
 		'R0' : 'Black',
 		'R1' : 'White'
 	}
-	dataset = adult.load(**dset_args)	
+	dataset = adult.load(**dset_args)
 	dataset.resample_n_train = tparams['n_train']
 	dataset._tparams = deepcopy(tparams)
 	dataset._seed = seed
@@ -317,9 +317,9 @@ def load_dataset(tparams, seed):
 if __name__ == '__main__':
 
 	# Note: This script computes experiments for the cross product of all values given for the
-	#       sweepable arguments. 
+	#       sweepable arguments.
 	# Note: Sweepable arguments allow inputs of the form, <start>:<end>:<increment>, which are then
-	#       expanded into ranges via np.arange(<start>, <end>, <increment>). 
+	#       expanded into ranges via np.arange(<start>, <end>, <increment>).
 	with ArgumentSweeper() as parser:
 		parser.add_argument('base_path', type=str)
 		parser.add_argument('--include_R',  action='store_true',      help='Whether or not to include race as a predictive feature.')
@@ -341,10 +341,11 @@ if __name__ == '__main__':
 		parser.add_argument('--dshift_var', type=str,       default='race', help='Choice of variable to evaluate demographic shift for.')
 		parser.add_argument('--dshift_alpha', type=float,   default=0.1,    help='Width of intervals around true marginals representing valid demographic shifts.') # TODO this is the interpolation factor
 		parser.add_argument('--cs_scale', type=float, default=1.0,  help='Scaling factor for predicted confidence intervals during candidate selection.')
+		parser.add_argument('--only_shifty', action='store_true', help='Only run Shifty implementation (QSRC)')
 		args = parser.parse_args()
 		args_dict = dict(args.__dict__)
 
-		# Generate thje constraints and deltas		
+		# Generate thje constraints and deltas
 		population  = adult.load(R0='Black', R1='White')
 		if args.dshift_var.lower()[0] == 's':
 			constraints = make_constraints(args.definition, 'R', np.unique(population._R), args.e) # np.unique(population._R) are all possible combinations of two races - in this case only black and white
@@ -352,40 +353,26 @@ if __name__ == '__main__':
 			constraints = make_constraints(args.definition, 'S', np.unique(population._S), args.e)
 		deltas = [ args.d for _ in constraints ]
 
-
 		print()
 		print(args.definition,':')
 		print('   Interpreting constraint string \'%s\''  % constraints[0])
 		print('                               as \'%r\'.' % get_parser().parse(constraints[0]))
 
-		
 		smla_names = ['SC', 'QSC', 'SRC', 'QSRC']
-		# model_evaluators = {
-		# 	# 'SC'           : eval_hoeff_sc,
-		# 	# 'QSC'          : eval_ttest_sc,
-		# 	# 'SRC'          : eval_hoeff_sc_robust,
-		# 	# 'QSRC'         : eval_ttest_sc_robust,
-		# 	# # 'SGD'          : eval_sgd,
-		# 	# # 'LinSVC'       : eval_linsvc,
-		# 	# # 'SVC'          : eval_svc
-		# 	# 'FairConst'    : eval_fair_constraints,
-		# 	'FairlearnSVC' : eval_fairlearn
-		# 	# 'FairRobust'   : eval_fair_robust
-		# }
+
 		model_evaluators = {
 			'SC'           : eval_hoeff_sc,
 			'QSC'          : eval_ttest_sc,
 			'SRC'          : eval_hoeff_sc_robust,
 			'QSRC'         : eval_ttest_sc_robust,
-			# 'SGD'          : eval_sgd,
-			# 'LinSVC'       : eval_linsvc,
-			# 'SVC'          : eval_svc
 			'FairConst'    : eval_fair_constraints,
 			'FairlearnSVC' : eval_fairlearn,
 			'FairRobust'   : eval_fair_robust
 		}
 
-
+		if args.only_shifty:
+			smla_names = ['QSRC']
+			model_evaluators = {'QSRC': eval_ttest_sc_robust}
 
 		#    Store task parameters:
 		tparams = {k:args_dict[k] for k in ['n_jobs', 'base_path', 'r_train_v_test', 'include_R', 'include_S', 'standardize', 'n_train']}
@@ -433,15 +420,14 @@ if __name__ == '__main__':
 			mparams[name]['dshift_var']   = args.dshift_var
 			mparams[name]['r_cand_v_safe'] = args.r_cand_v_safe
 			mparams[name].update(smla_dshift_opts)
-		# mparams['SGD'].update(loss=['hinge','log','perceptron'], penalty='l2', fit_intercept=False)
-		# mparams['SVC'].update(kernel=['rbf'], gamma=2, C=1)
-		# mparams['LinSVC'].update(loss=['hinge'], penalty='l2', fit_intercept=False)
-		mparams['FairConst'].update(cov=[0.01])
-		mparams['FairlearnSVC'].update(loss=['hinge'], penalty='l2', fit_intercept=False, fl_e=[0.01, 0.1])
-		
+
+		if not args.only_shifty:
+			mparams['FairConst'].update(cov=[0.01])
+			mparams['FairlearnSVC'].update(loss=['hinge'], penalty='l2', fit_intercept=False, fl_e=[0.01, 0.1])
+
 		#    Expand the parameter sets into a set of configurations
 		args_to_expand = parser._sweep_argnames + ['loss', 'kernel', 'cov', 'fl_e', 'n_train']
-		tparams, mparams = launcher.make_parameters(tparams, mparams, expand=args_to_expand)	
+		tparams, mparams = launcher.make_parameters(tparams, mparams, expand=args_to_expand)
 
 		print(ds.make_intervals(Pr_D, args.dshift_alpha, epsilon=1e-3)) # TODO I think this relates to the bounds
 		print(ds.make_intervals(Pr_D, args.dshift_alpha, epsilon=1e-3))
